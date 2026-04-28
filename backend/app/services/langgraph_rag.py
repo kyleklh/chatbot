@@ -49,7 +49,7 @@ def retrieve_node(state: RAGState) -> RAGState:
 
     sources = search_chunks(
         query_embedding=query_embedding,
-        top_k=8,
+        top_k=20,
         document_id=state["document_id"],
     )
 
@@ -84,7 +84,7 @@ def filter_sources_node(state: RAGState) -> RAGState:
 
     context_parts: list[str] = []
 
-    for index, source in enumerate(filtered_sources[:5]):
+    for index, source in enumerate(filtered_sources[:10]):
         context_parts.append(
             f"[Source {index + 1} | Page {source['metadata']['page']} | File: {source['filename']}]\n"
             f"{source['text']}"
@@ -94,7 +94,7 @@ def filter_sources_node(state: RAGState) -> RAGState:
 
     return {
         **state,
-        "filtered_sources": filtered_sources[:5],
+        "filtered_sources": filtered_sources[:10],
         "context": context,
     }
 

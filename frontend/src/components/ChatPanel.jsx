@@ -1,19 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
+import { sendChat } from '../api';
 
 function CitationBadge({ num }) {
   return (
-    <sup className="text-teal-600 font-semibold text-[10px] mx-0.5">
-      [{num}]
-    </sup>
+    <sup className="text-cyan-600 font-semibold text-[10px] mx-0.5">[{num}]</sup>
   );
 }
 
 function renderWithCitations(children) {
   const process = (node) => {
     if (typeof node !== 'string') return node;
-    // Match [N] or [Source N] — single digit or multi
     const parts = node.split(/(\[(?:Source )?\d+\])/g);
     if (parts.length === 1) return node;
     return parts.map((part, i) => {
@@ -24,18 +22,16 @@ function renderWithCitations(children) {
   if (Array.isArray(children)) return children.map(process);
   return process(children);
 }
-import { sendChat } from '../api';
-import SourceCard from './SourceCard';
 
 function LoadingDots() {
   return (
-    <div className="flex items-center gap-1 px-4 py-3">
+    <div className="flex items-center gap-1 px-1 py-1">
       {[0, 1, 2].map(i => (
         <motion.span
           key={i}
-          className="w-2 h-2 rounded-full bg-teal-400"
-          animate={{ y: [0, -6, 0] }}
-          transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
+          className="w-1.5 h-1.5 rounded-full bg-slate-400"
+          animate={{ y: [0, -4, 0] }}
+          transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.12, ease: 'easeInOut' }}
         />
       ))}
     </div>
@@ -44,177 +40,138 @@ function LoadingDots() {
 
 function UserMessage({ text }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex justify-end"
-    >
-      <div className="max-w-[75%] rounded-2xl rounded-tr-sm bg-teal-600 px-4 py-3 shadow-sm shadow-teal-200">
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-end">
+      <div className="max-w-[75%] rounded-2xl rounded-tr-sm bg-cyan-600 px-4 py-2.5">
         <p className="text-sm leading-relaxed text-white">{text}</p>
       </div>
     </motion.div>
   );
 }
 
-function AssistantMessage({ text, sources }) {
-  const [showSources, setShowSources] = useState(false);
-
+function AssistantMessage({ text }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-3"
-    >
-      <div className="flex gap-3 items-start">
-        <div className="shrink-0 w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center shadow-sm">
-          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-          </svg>
-        </div>
-        <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-white/80 backdrop-blur-sm border border-teal-100 px-4 py-3 shadow-sm prose prose-sm prose-teal max-w-none">
-          <ReactMarkdown
-            components={{
-              p: ({ children }) => <p className="text-sm leading-relaxed text-teal-900 mb-2 last:mb-0">{renderWithCitations(children)}</p>,
-              strong: ({ children }) => <strong className="font-semibold text-teal-900">{renderWithCitations(children)}</strong>,
-              em: ({ children }) => <em className="italic text-teal-800">{children}</em>,
-              ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2 text-sm text-teal-900">{children}</ul>,
-              ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2 text-sm text-teal-900">{children}</ol>,
-              li: ({ children }) => <li className="text-sm leading-relaxed text-teal-900">{renderWithCitations(children)}</li>,
-              code: ({ children }) => <code className="bg-teal-50 text-teal-800 rounded px-1 py-0.5 text-xs font-mono">{children}</code>,
-              h1: ({ children }) => <h1 className="text-base font-bold text-teal-900 mb-1 mt-2">{children}</h1>,
-              h2: ({ children }) => <h2 className="text-sm font-bold text-teal-900 mb-1 mt-2">{children}</h2>,
-              h3: ({ children }) => <h3 className="text-sm font-semibold text-teal-900 mb-1 mt-2">{children}</h3>,
-              blockquote: ({ children }) => <blockquote className="border-l-2 border-teal-300 pl-3 italic text-teal-700 my-2">{children}</blockquote>,
-            }}
-          >
-            {text}
-          </ReactMarkdown>
-        </div>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2.5 items-start">
+      <div className="shrink-0 w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center mt-0.5">
+        <svg className="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+        </svg>
       </div>
-
-      {sources && sources.length > 0 && (
-        <div className="ml-11">
-          <button
-            onClick={() => setShowSources(v => !v)}
-            className="flex items-center gap-1.5 text-xs font-medium text-teal-600 hover:text-teal-800 cursor-pointer transition-colors duration-150 mb-2"
-          >
-            <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${showSources ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
-            {showSources ? 'Hide' : 'Show'} {sources.length} source{sources.length !== 1 ? 's' : ''}
-          </button>
-
-          <AnimatePresence>
-            {showSources && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-2 overflow-hidden"
-              >
-                {sources.map((source, i) => (
-                  <SourceCard key={i} source={source} index={i} />
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
+      <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-white border border-slate-200 px-4 py-3 shadow-sm">
+        <ReactMarkdown
+          components={{
+            p: ({ children }) => <p className="text-sm leading-relaxed text-slate-800 mb-2 last:mb-0">{renderWithCitations(children)}</p>,
+            strong: ({ children }) => <strong className="font-semibold text-slate-900">{renderWithCitations(children)}</strong>,
+            em: ({ children }) => <em className="italic text-slate-700">{children}</em>,
+            ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2 text-sm text-slate-800">{children}</ul>,
+            ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2 text-sm text-slate-800">{children}</ol>,
+            li: ({ children }) => <li className="text-sm leading-relaxed text-slate-800">{renderWithCitations(children)}</li>,
+            code: ({ children }) => <code className="bg-slate-100 text-slate-700 rounded px-1 py-0.5 text-xs font-mono">{children}</code>,
+            h1: ({ children }) => <h1 className="text-base font-bold text-slate-900 mb-1 mt-2">{children}</h1>,
+            h2: ({ children }) => <h2 className="text-sm font-bold text-slate-900 mb-1 mt-2">{children}</h2>,
+            h3: ({ children }) => <h3 className="text-sm font-semibold text-slate-900 mb-1 mt-2">{children}</h3>,
+          }}
+        >
+          {text}
+        </ReactMarkdown>
+      </div>
     </motion.div>
   );
 }
 
 function ErrorMessage({ text }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex gap-3 items-start"
-    >
-      <div className="shrink-0 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-        <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2.5 items-start">
+      <div className="shrink-0 w-7 h-7 rounded-full bg-red-50 border border-red-200 flex items-center justify-center">
+        <svg className="w-3.5 h-3.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </div>
-      <div className="rounded-2xl rounded-tl-sm bg-red-50 border border-red-100 px-4 py-3">
+      <div className="rounded-2xl rounded-tl-sm bg-red-50 border border-red-200 px-4 py-3">
         <p className="text-sm text-red-700">{text}</p>
       </div>
     </motion.div>
   );
 }
 
-function EmptyChat() {
+function EmptyState({ hasDocuments, onUploadClick, onSuggestionClick }) {
+  const suggestions = [
+    'What is this document about?',
+    'Summarize the key points',
+    'What are the main conclusions?',
+    'List the important dates',
+  ];
+
+  if (!hasDocuments) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col items-center justify-center h-full gap-4 text-center px-8"
+      >
+        <div className="w-14 h-14 rounded-2xl bg-cyan-50 border border-cyan-200 flex items-center justify-center">
+          <svg className="w-7 h-7 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-slate-800">Upload your documents to get started</h2>
+          <p className="text-sm text-slate-500 mt-1 max-w-xs">
+            Add your PDFs and DocuRAG will let you ask questions across all of them.
+          </p>
+        </div>
+        <button
+          onClick={onUploadClick}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 text-white text-sm font-medium hover:bg-cyan-700 transition-colors duration-150 cursor-pointer"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+          Upload PDFs
+        </button>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center justify-center h-full gap-4 text-center px-8"
+      className="flex flex-col items-center justify-center h-full gap-5 text-center px-8"
     >
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center shadow-lg shadow-teal-200">
-        <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-        </svg>
-      </div>
       <div>
-        <h2 className="text-lg font-semibold text-teal-900">Ask anything about your documents</h2>
-        <p className="text-sm text-teal-600 mt-1 max-w-xs">
-          Type a question and DocuRAG will search across all your uploaded documents for the answer.
+        <h2 className="text-lg font-semibold text-slate-800">Ask anything about your documents</h2>
+        <p className="text-sm text-slate-500 mt-1 max-w-sm">
+          DocuRAG searches across all your uploaded files and cites the source for every answer.
         </p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-sm mt-2">
-        {['What is this document about?', 'Summarize the key points', 'What are the main conclusions?', 'List the important dates'].map(q => (
-          <div key={q} className="rounded-xl border border-teal-100 bg-white/60 px-3 py-2">
-            <p className="text-xs text-teal-600 font-medium">{q}</p>
-          </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-sm">
+        {suggestions.map(q => (
+          <button
+            key={q}
+            onClick={() => onSuggestionClick(q)}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left hover:border-cyan-400 hover:bg-cyan-50 transition-colors duration-150 cursor-pointer"
+          >
+            <p className="text-xs text-slate-500">{q}</p>
+          </button>
         ))}
       </div>
     </motion.div>
   );
 }
 
-function NoDocSelected() {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="flex flex-col items-center justify-center h-full gap-3 text-center px-8"
-    >
-      <div className="w-16 h-16 rounded-2xl bg-teal-100 flex items-center justify-center">
-        <svg className="w-8 h-8 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-        </svg>
-      </div>
-      <div>
-        <h2 className="text-lg font-semibold text-teal-900">Select a document</h2>
-        <p className="text-sm text-teal-600 mt-1 max-w-xs">
-          Choose a document from the sidebar or upload a new PDF to start chatting.
-        </p>
-      </div>
-    </motion.div>
-  );
-}
-
-export default function ChatPanel({ selectedDoc }) {
+export default function ChatPanel({ onAnswer, hasDocuments, onUploadClick }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
-  const prevDocRef = useRef(null);
-
-  useEffect(() => {
-    if (prevDocRef.current && selectedDoc?.document_id !== prevDocRef.current) {
-      setMessages([]);
-    }
-    prevDocRef.current = selectedDoc?.document_id;
-  }, [selectedDoc]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
-  const handleSend = async () => {
-    const question = input.trim();
+  const handleSend = async (overrideQuestion) => {
+    const question = (typeof overrideQuestion === 'string' ? overrideQuestion : input).trim();
     if (!question || isLoading) return;
 
     setMessages(prev => [...prev, { type: 'user', text: question }]);
@@ -223,10 +180,12 @@ export default function ChatPanel({ selectedDoc }) {
     textareaRef.current?.focus();
 
     try {
-      const result = await sendChat(question, selectedDoc?.document_id ?? null);
-      setMessages(prev => [...prev, { type: 'assistant', text: result.answer, sources: result.sources }]);
+      const result = await sendChat(question, null);
+      setMessages(prev => [...prev, { type: 'assistant', text: result.answer }]);
+      onAnswer?.(result.sources || []);
     } catch (err) {
       setMessages(prev => [...prev, { type: 'error', text: err.message }]);
+      onAnswer?.([]);
     } finally {
       setIsLoading(false);
     }
@@ -242,65 +201,32 @@ export default function ChatPanel({ selectedDoc }) {
   const canSend = input.trim().length > 0 && !isLoading;
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
-      {/* Header */}
-      <div className="shrink-0 flex items-center gap-3 px-6 py-4 border-b border-teal-100 bg-white/60 backdrop-blur-sm">
-        {selectedDoc ? (
-          <>
-            <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
-              <svg className="w-4 h-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-              </svg>
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-teal-900 truncate">{selectedDoc.file_name}</p>
-              <p className="text-xs text-teal-500">Active document</p>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
-              <svg className="w-4 h-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-teal-900">All documents</p>
-              <p className="text-xs text-teal-500">Searching across everything</p>
-            </div>
-          </>
-        )}
-      </div>
-
+    <div className="flex flex-col flex-1 h-full overflow-hidden bg-white">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
-        {!selectedDoc ? (
-          <NoDocSelected />
-        ) : messages.length === 0 ? (
-          <EmptyChat />
+      <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+        {messages.length === 0 ? (
+          <EmptyState hasDocuments={hasDocuments} onUploadClick={onUploadClick} onSuggestionClick={handleSend} />
         ) : (
           <>
-            {messages.map((msg, i) => (
-              msg.type === 'user' ? (
-                <UserMessage key={i} text={msg.text} />
-              ) : msg.type === 'assistant' ? (
-                <AssistantMessage key={i} text={msg.text} sources={msg.sources} />
-              ) : (
-                <ErrorMessage key={i} text={msg.text} />
-              )
-            ))}
+            <AnimatePresence>
+              {messages.map((msg, i) =>
+                msg.type === 'user' ? (
+                  <UserMessage key={i} text={msg.text} />
+                ) : msg.type === 'assistant' ? (
+                  <AssistantMessage key={i} text={msg.text} />
+                ) : (
+                  <ErrorMessage key={i} text={msg.text} />
+                )
+              )}
+            </AnimatePresence>
             {isLoading && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex gap-3 items-start"
-              >
-                <div className="shrink-0 w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center shadow-sm">
-                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2.5 items-start">
+                <div className="shrink-0 w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
+                  <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                   </svg>
                 </div>
-                <div className="rounded-2xl rounded-tl-sm bg-white/80 backdrop-blur-sm border border-teal-100 shadow-sm">
+                <div className="rounded-2xl rounded-tl-sm bg-white border border-slate-200 px-4 py-3 shadow-sm">
                   <LoadingDots />
                 </div>
               </motion.div>
@@ -311,9 +237,9 @@ export default function ChatPanel({ selectedDoc }) {
       </div>
 
       {/* Input */}
-      <div className="shrink-0 border-t border-teal-100 bg-white/60 backdrop-blur-sm px-6 py-4">
-        <div className={`flex items-end gap-3 rounded-2xl border transition-colors duration-150 px-4 py-3 ${
-          selectedDoc ? 'bg-white border-teal-200 focus-within:border-teal-500 focus-within:shadow-sm focus-within:shadow-teal-100' : 'bg-teal-50/50 border-teal-100'
+      {hasDocuments && <div className="shrink-0 border-t border-slate-200 bg-white px-5 py-4">
+        <div className={`flex items-end gap-3 rounded-xl border px-4 py-3 transition-colors duration-150 ${
+          isLoading ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-300 focus-within:border-cyan-500'
         }`}>
           <textarea
             ref={textareaRef}
@@ -322,23 +248,21 @@ export default function ChatPanel({ selectedDoc }) {
             onChange={e => {
               setInput(e.target.value);
               e.target.style.height = 'auto';
-              e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px';
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
             }}
             onKeyDown={handleKeyDown}
             disabled={isLoading}
-            placeholder="Ask a question across all your documents…"
-            aria-label="Question input"
-            className="flex-1 resize-none bg-transparent text-sm text-teal-900 placeholder-teal-400 outline-none leading-relaxed disabled:cursor-not-allowed min-h-[24px] max-h-32"
-            style={{ height: '24px' }}
+            placeholder="Ask your docs..."
+            aria-label="Ask a question about your documents"
+            className="flex-1 resize-none bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none leading-relaxed disabled:cursor-not-allowed min-h-[22px] max-h-28"
+            style={{ height: '22px' }}
           />
           <button
             onClick={handleSend}
             disabled={!canSend}
-            aria-label="Send question"
-            className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-150 ${
-              canSend
-                ? 'bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-200 text-white'
-                : 'bg-teal-100 text-teal-300 cursor-not-allowed'
+            aria-label="Send"
+            className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-150 cursor-pointer ${
+              canSend ? 'bg-cyan-600 hover:bg-cyan-700 text-white' : 'bg-slate-100 text-slate-300 cursor-not-allowed'
             }`}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -346,10 +270,8 @@ export default function ChatPanel({ selectedDoc }) {
             </svg>
           </button>
         </div>
-        <p className="text-xs text-teal-400 mt-2 text-center">
-          {selectedDoc ? 'Press Enter to send · Shift+Enter for new line' : ''}
-        </p>
-      </div>
+        <p className="text-xs text-slate-400 mt-2 text-center">Enter to send · Shift+Enter for new line</p>
+      </div>}
     </div>
   );
 }

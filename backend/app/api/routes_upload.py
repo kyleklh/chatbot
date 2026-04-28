@@ -53,15 +53,30 @@ async def _process_file(file: UploadFile) -> dict[str, Any]:
 async def upload_documents(files: list[UploadFile] = File(...)) -> dict[str, Any]:
     results = []
     for file in files:
-        result = await _process_file(file)
-        results.append(result)
+        try:
+            result = await _process_file(file)
+            results.append({**result, "status": "ok"})
+        except HTTPException as e:
+            results.append({
+                "file_name": file.filename or "unknown",
+                "status": "error",
+                "error": e.detail,
+            })
+        except Exception as e:
+            print(f"Unexpected error processing {file.filename}: {type(e).__name__}: {e}")
+            results.append({
+                "file_name": file.filename or "unknown",
+                "status": "error",
+                "error": "Unexpected error processing this file.",
+            })
+
+    succeeded = [r for r in results if r["status"] == "ok"]
 
     return {
-        "message": f"{len(results)} file(s) uploaded and indexed successfully.",
+        "message": f"{len(succeeded)}/{len(results)} file(s) indexed successfully.",
         "documents": results,
-        # keep single-file compat fields for the first file
-        "document_id": results[0]["document_id"] if results else None,
-        "file_name": results[0]["file_name"] if results else None,
-        "num_chunks": results[0]["num_chunks"] if results else 0,
-        "num_pages": results[0]["num_pages"] if results else 0,
+        "document_id": succeeded[0]["document_id"] if succeeded else None,
+        "file_name": succeeded[0]["file_name"] if succeeded else None,
+        "num_chunks": succeeded[0].get("num_chunks", 0) if succeeded else 0,
+        "num_pages": succeeded[0].get("num_pages", 0) if succeeded else 0,
     }
