@@ -8,8 +8,9 @@ export default function UploadZone({ onDocumentUploaded }) {
   const [message, setMessage] = useState('');
   const inputRef = useRef(null);
 
-  const handleFile = async (file) => {
-    if (!file || !file.name.toLowerCase().endsWith('.pdf')) {
+  const handleFiles = async (fileList) => {
+    const files = Array.from(fileList).filter(f => f.name.toLowerCase().endsWith('.pdf'));
+    if (files.length === 0) {
       setStatus('error');
       setMessage('Only PDF files are supported.');
       setTimeout(() => setStatus('idle'), 3000);
@@ -20,10 +21,11 @@ export default function UploadZone({ onDocumentUploaded }) {
     setMessage('');
 
     try {
-      const result = await uploadDocument(file);
+      const result = await uploadDocument(files);
       setStatus('success');
-      setMessage(`${result.file_name} — ${result.num_pages} pages`);
-      onDocumentUploaded(result);
+      const docs = result.documents || [result];
+      setMessage(`${docs.length} file${docs.length !== 1 ? 's' : ''} uploaded`);
+      docs.forEach(doc => onDocumentUploaded(doc));
       setTimeout(() => setStatus('idle'), 3000);
     } catch (err) {
       setStatus('error');
@@ -35,13 +37,11 @@ export default function UploadZone({ onDocumentUploaded }) {
   const onDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    handleFile(file);
+    handleFiles(e.dataTransfer.files);
   };
 
   const onInputChange = (e) => {
-    const file = e.target.files[0];
-    handleFile(file);
+    handleFiles(e.target.files);
     e.target.value = '';
   };
 
@@ -73,9 +73,10 @@ export default function UploadZone({ onDocumentUploaded }) {
           ref={inputRef}
           type="file"
           accept=".pdf"
+          multiple
           className="sr-only"
           onChange={onInputChange}
-          aria-label="Select PDF file"
+          aria-label="Select PDF files"
         />
 
         <AnimatePresence mode="wait">
@@ -131,9 +132,9 @@ export default function UploadZone({ onDocumentUploaded }) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.338-2.32 5.75 5.75 0 011.344 11.096" />
               </svg>
               <p className="text-sm font-medium text-teal-700">
-                {isDragging ? 'Drop to upload' : 'Drop PDF or click to browse'}
+                {isDragging ? 'Drop to upload' : 'Drop PDFs or click to browse'}
               </p>
-              <p className="text-xs text-teal-500">PDF files only</p>
+              <p className="text-xs text-teal-500">Multiple PDFs supported</p>
             </motion.div>
           )}
         </AnimatePresence>

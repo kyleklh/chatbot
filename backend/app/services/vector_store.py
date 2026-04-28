@@ -40,15 +40,17 @@ def add_chunks(
     )
 
 def search_chunks(
-    document_id: str,
     query_embedding: list[float],
-    top_k: int = 5, 
+    top_k: int = 5,
+    document_id: str | None = None,
 ) -> list[dict[str, Any]]:
-    results = collection.query(
-        query_embeddings=cast(Any, [query_embedding]),
-        n_results=top_k,
-        where={"document_id": document_id}
-    )
+    kwargs: dict[str, Any] = {
+        "query_embeddings": cast(Any, [query_embedding]),
+        "n_results": top_k,
+    }
+    if document_id:
+        kwargs["where"] = {"document_id": document_id}
+    results = collection.query(**kwargs)
 
     sources: list[dict[str, Any]] = []
 

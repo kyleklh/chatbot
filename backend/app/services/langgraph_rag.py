@@ -8,7 +8,7 @@ from app.services.ollama_client import generate_with_ollama
 
 
 class RAGState(TypedDict):
-    document_id: str
+    document_id: str | None
     original_question: str
     rewritten_question: str
     sources: list[dict[str, Any]]
@@ -48,9 +48,9 @@ def retrieve_node(state: RAGState) -> RAGState:
     query_embedding = embed_texts([state["rewritten_question"]])[0]
 
     sources = search_chunks(
-        document_id=state["document_id"],
         query_embedding=query_embedding,
         top_k=8,
+        document_id=state["document_id"],
     )
 
     return {
@@ -175,7 +175,7 @@ def build_rag_graph():
 rag_graph = build_rag_graph()
 
 
-def answer_question_with_graph(document_id: str, question: str) -> dict[str, Any]:
+def answer_question_with_graph(document_id: str | None, question: str) -> dict[str, Any]:
     initial_state: RAGState = {
         "document_id": document_id,
         "original_question": question,

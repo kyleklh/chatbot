@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 
 class ChatRequest(BaseModel):
-    document_id: str
+    document_id: str | None = None
     question: str
 
 

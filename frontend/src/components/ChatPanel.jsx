@@ -156,9 +156,9 @@ function EmptyChat() {
         </svg>
       </div>
       <div>
-        <h2 className="text-lg font-semibold text-teal-900">Ask anything about your document</h2>
+        <h2 className="text-lg font-semibold text-teal-900">Ask anything about your documents</h2>
         <p className="text-sm text-teal-600 mt-1 max-w-xs">
-          Type a question below and DocuRAG will find the answer using your uploaded PDF.
+          Type a question and DocuRAG will search across all your uploaded documents for the answer.
         </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-sm mt-2">
@@ -215,7 +215,7 @@ export default function ChatPanel({ selectedDoc }) {
 
   const handleSend = async () => {
     const question = input.trim();
-    if (!question || !selectedDoc || isLoading) return;
+    if (!question || isLoading) return;
 
     setMessages(prev => [...prev, { type: 'user', text: question }]);
     setInput('');
@@ -223,7 +223,7 @@ export default function ChatPanel({ selectedDoc }) {
     textareaRef.current?.focus();
 
     try {
-      const result = await sendChat(selectedDoc.document_id, question);
+      const result = await sendChat(question, selectedDoc?.document_id ?? null);
       setMessages(prev => [...prev, { type: 'assistant', text: result.answer, sources: result.sources }]);
     } catch (err) {
       setMessages(prev => [...prev, { type: 'error', text: err.message }]);
@@ -239,7 +239,7 @@ export default function ChatPanel({ selectedDoc }) {
     }
   };
 
-  const canSend = input.trim().length > 0 && !!selectedDoc && !isLoading;
+  const canSend = input.trim().length > 0 && !isLoading;
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -258,7 +258,17 @@ export default function ChatPanel({ selectedDoc }) {
             </div>
           </>
         ) : (
-          <p className="text-sm font-medium text-teal-500">No document selected</p>
+          <>
+            <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
+              <svg className="w-4 h-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-teal-900">All documents</p>
+              <p className="text-xs text-teal-500">Searching across everything</p>
+            </div>
+          </>
         )}
       </div>
 
@@ -315,8 +325,8 @@ export default function ChatPanel({ selectedDoc }) {
               e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px';
             }}
             onKeyDown={handleKeyDown}
-            disabled={!selectedDoc || isLoading}
-            placeholder={selectedDoc ? 'Ask a question about this document…' : 'Select a document to start'}
+            disabled={isLoading}
+            placeholder="Ask a question across all your documents…"
             aria-label="Question input"
             className="flex-1 resize-none bg-transparent text-sm text-teal-900 placeholder-teal-400 outline-none leading-relaxed disabled:cursor-not-allowed min-h-[24px] max-h-32"
             style={{ height: '24px' }}

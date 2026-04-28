@@ -9,6 +9,6 @@ router = APIRouter()
 @router.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     return answer_question_with_graph(
-        document_id=request.document_id,
+        document_id=request.document_id or None,
         question=request.question,
     )
