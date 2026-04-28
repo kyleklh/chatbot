@@ -68,6 +68,7 @@ def search_chunks(
             "text": text,
             "metadata": metadata,
             "filename": metadata["file_name"],
+            "page": metadata["page"],
             "distance": distance
         })
     

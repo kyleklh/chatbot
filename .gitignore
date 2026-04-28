@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Virtual environments
+backend/venv/
+backend/.venv/
+
+# Local storage (ChromaDB and uploads — use Railway volume in production)
+backend/app/storage/uploads/
+backend/app/storage/chroma/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env

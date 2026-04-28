@@ -22,8 +22,8 @@ async def upload_document(file: UploadFile = File(...)) -> dict[str, Any]:
     file_path = os.path.join(UPLOAD_DIR, f"{document_id}_{safe_filename}")
 
     with open(file_path, "wb") as f:
-        content = await file.read()
-        f.write(content)
+        while chunk := await file.read(1024 * 1024):
+            f.write(chunk)
 
     pages = extract_pdf_pages(file_path)
     chunks = chunk_pages(pages)

@@ -5,4 +5,11 @@ python-dotenv
 pypdf
 chromadb
 sentence-transformers
-requests
+groq
+
+langgraph
+langchain
+langchain-community
+langchain-chroma
+langchain-huggingface
+langchain-text-splitters
