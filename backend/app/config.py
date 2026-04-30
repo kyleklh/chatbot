@@ -21,5 +21,8 @@ CORS_ORIGINS: list[str] = (
     else ["http://localhost:3000", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175"]
 )
 
+# Allow Vercel preview and production domains without requiring a manual Railway env update.
+CORS_ORIGIN_REGEX = os.getenv("CORS_ORIGIN_REGEX", r"https://.*\.vercel\.app")
+
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(CHROMA_DIR, exist_ok=True)
