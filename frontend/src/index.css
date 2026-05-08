@@ -1,17 +1,76 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 * {
   font-family: var(--font-sans);
+  font-feature-settings: 'cv11', 'ss01';
 }
+
+body {
+  background: #FAFAF9;
+  color: #18181B;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+}
+
+/* Subtle grain — fixed overlay above all content but below modals */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Streaming cursor — a tiny indigo block at the end of the last paragraph */
+.streaming-cursor > *:last-child::after {
+  content: '▍';
+  display: inline-block;
+  margin-left: 2px;
+  color: #6366F1;
+  animation: blink 1s steps(2, jump-none) infinite;
+  vertical-align: baseline;
+  font-weight: 400;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* Indeterminate shimmer bar (for indexing progress) */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+.animate-shimmer {
+  animation: shimmer 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Slow drift for gradient mesh blobs */
+@keyframes drift-1 {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(80px, 40px); }
+  66% { transform: translate(-40px, 80px); }
+}
+@keyframes drift-2 {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(-60px, -30px); }
+  66% { transform: translate(50px, -50px); }
+}
+.drift-1 { animation: drift-1 24s ease-in-out infinite; }
+.drift-2 { animation: drift-2 30s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+  body::before { display: none; }
 }

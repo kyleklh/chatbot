@@ -18,7 +18,11 @@ backend/.venv/
 backend/app/storage/uploads/
 backend/app/storage/chroma/
 
+# Throwaway scripts (proofs, debugging, one-offs)
+backend/scripts/
+
 # Node
 frontend/node_modules/
 frontend/dist/
 frontend/.env
+.gstack/

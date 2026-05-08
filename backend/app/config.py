@@ -13,13 +13,13 @@ CHROMA_DIR = os.getenv("CHROMA_DIR", os.path.join(_DEFAULT_STORAGE_DIR, "chroma"
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-MAX_TOKENS = int(os.getenv("MAX_TOKENS", "2048"))
+MAX_TOKENS = int(os.getenv("MAX_TOKENS", "4096"))
 
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
 
 CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "docurag_docs")
 
-RAG_TOP_K = int(os.getenv("RAG_TOP_K", "20"))
+RAG_TOP_K = int(os.getenv("RAG_TOP_K", "30"))
 RAG_MAX_DISTANCE = float(os.getenv("RAG_MAX_DISTANCE", "2.0"))
 
 RERANKER_MODEL = os.getenv("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")

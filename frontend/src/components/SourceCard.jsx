@@ -1,46 +1,64 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, useAnimationControls } from 'framer-motion';
 
-export default function SourceCard({ source, index }) {
+export default function SourceCard({ source, index, flash }) {
   const [expanded, setExpanded] = useState(false);
   const page = source.page ?? source.metadata?.page;
   const isLong = source.text.length > 200;
+  const ref = useRef(null);
+  const controls = useAnimationControls();
+
+  useEffect(() => {
+    if (!flash) return;
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    controls.start({
+      boxShadow: [
+        '0 0 0 0 rgba(99, 102, 241, 0)',
+        '0 0 0 3px rgba(99, 102, 241, 0.45)',
+        '0 0 0 0 rgba(99, 102, 241, 0)',
+      ],
+      borderColor: ['#e7e5e4', '#a5b4fc', '#e7e5e4'],
+      transition: { duration: 1.4, ease: 'easeOut' },
+    });
+  }, [flash, controls]);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm"
+      ref={ref}
+      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: index * 0.07, duration: 0.3, ease: 'easeOut' }}
+      className="rounded-xl border border-stone-200 bg-white overflow-hidden shadow-sm hover:border-indigo-200 hover:shadow-md transition-all duration-200"
     >
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 bg-slate-50">
-        <span className="text-xs font-semibold text-slate-600">Source {index + 1}</span>
-
-        <span className="text-xs text-slate-400 truncate max-w-[120px]" title={source.filename}>
+      <motion.div animate={controls}>
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-stone-100">
+        <span className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono text-[11px] font-medium">
+          {index + 1}
+        </span>
+        <span className="text-[12px] text-zinc-500 truncate flex-1" title={source.filename}>
           {source.filename}
         </span>
-
         {page != null && (
-          <span className="inline-flex items-center rounded-md bg-slate-100 border border-slate-200 px-1.5 py-0.5 text-xs font-medium text-slate-600">
+          <span className="inline-flex items-center rounded-md bg-stone-100 px-1.5 py-0.5 text-[11px] font-medium text-zinc-600 font-mono">
             p.{page}
           </span>
         )}
-
       </div>
 
-      <div className="px-3 py-2.5">
-        <p className="text-xs leading-relaxed text-slate-700">
+      <div className="px-3 py-2">
+        <p className="text-[13px] leading-relaxed text-zinc-700">
           {expanded || !isLong ? source.text : source.text.slice(0, 200) + '…'}
         </p>
         {isLong && (
           <button
             onClick={() => setExpanded(v => !v)}
-            className="mt-1.5 text-xs font-medium text-cyan-600 hover:text-cyan-800 cursor-pointer transition-colors duration-150"
+            className="mt-1 text-[12px] font-medium text-indigo-600 hover:text-indigo-700 cursor-pointer transition-colors duration-150"
           >
             {expanded ? 'Show less' : 'Show more'}
           </button>
         )}
       </div>
+      </motion.div>
     </motion.div>
   );
 }
