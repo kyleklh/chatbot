@@ -1,9 +1,15 @@
 from pydantic import BaseModel
 
 
+class HistoryMessage(BaseModel):
+    role: str
+    content: str
+
+
 class ChatRequest(BaseModel):
     document_id: str | None = None
     question: str
+    history: list[HistoryMessage] = []
 
 
 class Source(BaseModel):

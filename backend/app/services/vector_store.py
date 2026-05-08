@@ -1,10 +1,10 @@
 import chromadb
 from typing import Any, TypedDict, cast
-from app.config import CHROMA_DIR
+from app.config import CHROMA_DIR, CHROMA_COLLECTION_NAME
 
 client = chromadb.PersistentClient(path=CHROMA_DIR)
 
-collection = client.get_or_create_collection(name="docurag_docs")
+collection = client.get_or_create_collection(name=CHROMA_COLLECTION_NAME)
 
 
 class Chunk(TypedDict):
@@ -38,6 +38,9 @@ def add_chunks(
         metadatas=cast(Any, metadatas),
         embeddings=cast(Any, embeddings),
     )
+
+    from app.services import bm25_retriever
+    bm25_retriever.rebuild_index()
 
 def search_chunks(
     query_embedding: list[float],
@@ -95,7 +98,19 @@ def get_all_documents() -> list[dict[str, Any]]:
     return list(documents.values())
 
 
+def find_document_by_filename(file_name: str) -> dict[str, Any] | None:
+    results = collection.get(where={"file_name": file_name}, include=["metadatas"])
+    metadatas_list = cast(list, results.get("metadatas")) or []
+    if not metadatas_list:
+        return None
+    meta = cast(dict[str, Any], metadatas_list[0])
+    return {"document_id": meta.get("document_id"), "file_name": meta.get("file_name")}
+
+
 def delete_document(document_id: str) -> None:
     collection.delete(
         where={"document_id": document_id}
     )
+
+    from app.services import bm25_retriever
+    bm25_retriever.rebuild_index()

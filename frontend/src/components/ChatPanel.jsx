@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
-import { sendChat } from '../api';
+import remarkGfm from 'remark-gfm';
+import { streamChat } from '../api';
 
 function CitationBadge({ num }) {
   return (
@@ -48,7 +49,7 @@ function UserMessage({ text }) {
   );
 }
 
-function AssistantMessage({ text }) {
+function AssistantMessage({ text, isStreaming }) {
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2.5 items-start">
       <div className="shrink-0 w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center mt-0.5">
@@ -56,23 +57,38 @@ function AssistantMessage({ text }) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
         </svg>
       </div>
-      <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-white border border-slate-200 px-4 py-3 shadow-sm">
-        <ReactMarkdown
-          components={{
-            p: ({ children }) => <p className="text-sm leading-relaxed text-slate-800 mb-2 last:mb-0">{renderWithCitations(children)}</p>,
-            strong: ({ children }) => <strong className="font-semibold text-slate-900">{renderWithCitations(children)}</strong>,
-            em: ({ children }) => <em className="italic text-slate-700">{children}</em>,
-            ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2 text-sm text-slate-800">{children}</ul>,
-            ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2 text-sm text-slate-800">{children}</ol>,
-            li: ({ children }) => <li className="text-sm leading-relaxed text-slate-800">{renderWithCitations(children)}</li>,
-            code: ({ children }) => <code className="bg-slate-100 text-slate-700 rounded px-1 py-0.5 text-xs font-mono">{children}</code>,
-            h1: ({ children }) => <h1 className="text-base font-bold text-slate-900 mb-1 mt-2">{children}</h1>,
-            h2: ({ children }) => <h2 className="text-sm font-bold text-slate-900 mb-1 mt-2">{children}</h2>,
-            h3: ({ children }) => <h3 className="text-sm font-semibold text-slate-900 mb-1 mt-2">{children}</h3>,
-          }}
-        >
-          {text}
-        </ReactMarkdown>
+      <div className="max-w-full rounded-2xl rounded-tl-sm bg-white border border-slate-200 px-4 py-3 shadow-sm overflow-x-auto">
+        {isStreaming && text === '' ? (
+          <LoadingDots />
+        ) : (
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              p: ({ children }) => <p className="text-sm leading-relaxed text-slate-800 mb-2 last:mb-0">{renderWithCitations(children)}</p>,
+              strong: ({ children }) => <strong className="font-semibold text-slate-900">{renderWithCitations(children)}</strong>,
+              em: ({ children }) => <em className="italic text-slate-700">{children}</em>,
+              ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2 text-sm text-slate-800">{children}</ul>,
+              ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2 text-sm text-slate-800">{children}</ol>,
+              li: ({ children }) => <li className="text-sm leading-relaxed text-slate-800">{renderWithCitations(children)}</li>,
+              code: ({ children }) => <code className="bg-slate-100 text-slate-700 rounded px-1 py-0.5 text-xs font-mono">{children}</code>,
+              h1: ({ children }) => <h1 className="text-base font-bold text-slate-900 mb-1 mt-2">{children}</h1>,
+              h2: ({ children }) => <h2 className="text-sm font-bold text-slate-900 mb-1 mt-2">{children}</h2>,
+              h3: ({ children }) => <h3 className="text-sm font-semibold text-slate-900 mb-1 mt-2">{children}</h3>,
+              table: ({ children }) => (
+                <div className="overflow-x-auto my-3">
+                  <table className="text-xs border-collapse w-full">{children}</table>
+                </div>
+              ),
+              thead: ({ children }) => <thead className="bg-slate-100">{children}</thead>,
+              tbody: ({ children }) => <tbody>{children}</tbody>,
+              tr: ({ children }) => <tr className="border-b border-slate-200 even:bg-slate-50">{children}</tr>,
+              th: ({ children }) => <th className="text-left px-2 py-1.5 font-semibold text-slate-700 border border-slate-200 whitespace-nowrap">{children}</th>,
+              td: ({ children }) => <td className="px-2 py-1.5 text-slate-800 border border-slate-200 whitespace-nowrap">{children}</td>,
+            }}
+          >
+            {text}
+          </ReactMarkdown>
+        )}
       </div>
     </motion.div>
   );
@@ -170,25 +186,45 @@ export default function ChatPanel({ onAnswer, hasDocuments, onUploadClick }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
-  const handleSend = async (overrideQuestion) => {
+  const handleSend = (overrideQuestion) => {
     const question = (typeof overrideQuestion === 'string' ? overrideQuestion : input).trim();
     if (!question || isLoading) return;
 
-    setMessages(prev => [...prev, { type: 'user', text: question }]);
+    const history = messages
+      .filter(m => m.type === 'user' || m.type === 'assistant')
+      .map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.text }));
+
+    setMessages(prev => [...prev, { type: 'user', text: question }, { type: 'assistant', text: '' }]);
     setInput('');
     setIsLoading(true);
     textareaRef.current?.focus();
 
-    try {
-      const result = await sendChat(question, null);
-      setMessages(prev => [...prev, { type: 'assistant', text: result.answer }]);
-      onAnswer?.(result.sources || []);
-    } catch (err) {
-      setMessages(prev => [...prev, { type: 'error', text: err.message }]);
-      onAnswer?.([]);
-    } finally {
-      setIsLoading(false);
-    }
+    streamChat(
+      question,
+      null,
+      history,
+      (token) => {
+        setMessages(prev => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          updated[updated.length - 1] = { ...last, text: last.text + token };
+          return updated;
+        });
+      },
+      (sources) => {
+        onAnswer?.(sources);
+        setIsLoading(false);
+      },
+      (err) => {
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { type: 'error', text: err.message };
+          return updated;
+        });
+        onAnswer?.([]);
+        setIsLoading(false);
+      },
+    );
   };
 
   const handleKeyDown = (e) => {
@@ -213,24 +249,12 @@ export default function ChatPanel({ onAnswer, hasDocuments, onUploadClick }) {
                 msg.type === 'user' ? (
                   <UserMessage key={i} text={msg.text} />
                 ) : msg.type === 'assistant' ? (
-                  <AssistantMessage key={i} text={msg.text} />
+                  <AssistantMessage key={i} text={msg.text} isStreaming={isLoading && i === messages.length - 1} />
                 ) : (
                   <ErrorMessage key={i} text={msg.text} />
                 )
               )}
             </AnimatePresence>
-            {isLoading && (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2.5 items-start">
-                <div className="shrink-0 w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-                  </svg>
-                </div>
-                <div className="rounded-2xl rounded-tl-sm bg-white border border-slate-200 px-4 py-3 shadow-sm">
-                  <LoadingDots />
-                </div>
-              </motion.div>
-            )}
             <div ref={messagesEndRef} />
           </>
         )}

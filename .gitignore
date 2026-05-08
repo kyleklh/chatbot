@@ -1,8 +1,14 @@
+# Claude Code
+CLAUDE.md
+TODOS.md
+.claude/
+
 # Python
 __pycache__/
 *.pyc
 *.pyo
 .env
+backend/.env
 
 # Virtual environments
 backend/venv/
