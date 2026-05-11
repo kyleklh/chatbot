@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import SourceCard from './SourceCard';
 
-export default function SourcesPanel({ sources, flashIndex }) {
+export default function SourcesPanel({ sources }) {
   return (
     <div className="flex flex-col h-full bg-stone-50">
       <div className="shrink-0 px-4 h-14 flex items-center bg-white border-b border-stone-200">
@@ -34,7 +34,7 @@ export default function SourcesPanel({ sources, flashIndex }) {
             </motion.div>
           ) : (
             sources.map((source, i) => (
-              <SourceCard key={i} source={source} index={i} flash={flashIndex === i} />
+              <SourceCard key={i} source={source} index={i} />
             ))
           )}
         </AnimatePresence>

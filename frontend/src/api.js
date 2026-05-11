@@ -1,5 +1,9 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+export function pdfUrl(documentId) {
+  return `${BASE_URL}/pdf/${documentId}`;
+}
+
 export async function uploadDocument(files) {
   const formData = new FormData();
   const fileList = Array.isArray(files) ? files : [files];

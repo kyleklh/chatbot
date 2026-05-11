@@ -1,36 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
-import { motion, useAnimationControls } from 'framer-motion';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
 
-export default function SourceCard({ source, index, flash }) {
+export default function SourceCard({ source, index }) {
   const [expanded, setExpanded] = useState(false);
   const page = source.page ?? source.metadata?.page;
   const isLong = source.text.length > 200;
-  const ref = useRef(null);
-  const controls = useAnimationControls();
-
-  useEffect(() => {
-    if (!flash) return;
-    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    controls.start({
-      boxShadow: [
-        '0 0 0 0 rgba(99, 102, 241, 0)',
-        '0 0 0 3px rgba(99, 102, 241, 0.45)',
-        '0 0 0 0 rgba(99, 102, 241, 0)',
-      ],
-      borderColor: ['#e7e5e4', '#a5b4fc', '#e7e5e4'],
-      transition: { duration: 1.4, ease: 'easeOut' },
-    });
-  }, [flash, controls]);
 
   return (
     <motion.div
-      ref={ref}
       initial={{ opacity: 0, y: 8, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay: index * 0.07, duration: 0.3, ease: 'easeOut' }}
       className="rounded-xl border border-stone-200 bg-white overflow-hidden shadow-sm hover:border-indigo-200 hover:shadow-md transition-all duration-200"
     >
-      <motion.div animate={controls}>
       <div className="flex items-center gap-2 px-3 py-1.5 border-b border-stone-100">
         <span className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono text-[11px] font-medium">
           {index + 1}
@@ -58,7 +40,6 @@ export default function SourceCard({ source, index, flash }) {
           </button>
         )}
       </div>
-      </motion.div>
     </motion.div>
   );
 }

@@ -1,16 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { getDocuments } from './api';
 import UploadZone from './components/UploadZone';
 import DocumentList from './components/DocumentList';
 import ChatPanel from './components/ChatPanel';
 import SourcesPanel from './components/SourcesPanel';
 
+const PdfViewer = lazy(() => import('./components/PdfViewer'));
+
 export default function App() {
   const [documents, setDocuments] = useState([]);
   const [isLoadingDocs, setIsLoadingDocs] = useState(true);
   const [sources, setSources] = useState([]);
   const [freshIds, setFreshIds] = useState(() => new Set());
-  const [flashIndex, setFlashIndex] = useState(null);
+  const [viewingSource, setViewingSource] = useState(null);
 
   useEffect(() => {
     getDocuments()
@@ -45,8 +47,9 @@ export default function App() {
 
   const handleCitationClick = (idx) => {
     if (idx == null || idx < 0 || idx >= sources.length) return;
-    setFlashIndex(idx);
-    setTimeout(() => setFlashIndex(null), 1500);
+    const src = sources[idx];
+    if (!src?.document_id) return;
+    setViewingSource(src);
   };
 
   return (
@@ -100,8 +103,14 @@ export default function App() {
       {/* Right: sources — hidden until there are docs to query */}
       {documents.length > 0 && (
         <aside className="w-96 shrink-0 hidden xl:flex flex-col border-l border-stone-200 bg-stone-50">
-          <SourcesPanel sources={sources} flashIndex={flashIndex} />
+          <SourcesPanel sources={sources} />
         </aside>
+      )}
+
+      {viewingSource && (
+        <Suspense fallback={null}>
+          <PdfViewer source={viewingSource} onClose={() => setViewingSource(null)} />
+        </Suspense>
       )}
     </div>
   );

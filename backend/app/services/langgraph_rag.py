@@ -260,6 +260,7 @@ def stream_answer_with_graph(
             "text": s["text"],
             "page": s["page"],
             "filename": s["filename"],
+            "document_id": s["metadata"]["document_id"],
             "distance": s.get("distance"),
         }
         for s in state["filtered_sources"]
