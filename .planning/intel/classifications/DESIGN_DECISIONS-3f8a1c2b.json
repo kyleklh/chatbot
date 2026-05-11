@@ -1,0 +1,30 @@
+{
+  "source_path": "c:\\Users\\Kyle\\chatbot\\DESIGN_DECISIONS.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "UI/UX design decisions",
+  "summary": "Locked UI/UX design decisions from a /plan-design-review pass covering six frontend/backend changes to address remaining TODOs.",
+  "scope": [
+    "per-message sources",
+    "conversation history sidebar",
+    "per-document filter chips",
+    "upload progress states",
+    "mobile viewport (deferred)",
+    "document management tooltip",
+    "ChatPanel",
+    "DocumentList",
+    "routes_chat.py /chat/stream",
+    "/documents endpoint",
+    "Chroma metadata"
+  ],
+  "cross_refs": [
+    "TODOS.md",
+    "DocumentList",
+    "ChatPanel",
+    "routes_chat.py"
+  ],
+  "locked": true,
+  "precedence": null,
+  "notes": "Document is a multi-decision bundle rather than a single ADR, but it is explicitly framed as 'Locked design decisions' from a design-review pass with clear Problem/Decision sections per item — classifying as ADR with locked=true."
+}

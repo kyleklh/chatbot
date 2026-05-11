@@ -1,0 +1,28 @@
+{
+  "source_path": "c:\\Users\\Kyle\\chatbot\\TODOS.md",
+  "type": "DOC",
+  "confidence": "medium",
+  "manifest_override": false,
+  "title": "DocuRAG — TODO",
+  "summary": "Backlog of pending DocuRAG work items grouped by area: UI/UX, retrieval quality, auth/multi-tenancy, data source integrations, infra, and multimodal extraction.",
+  "scope": [
+    "mobile responsive layout",
+    "evaluation harness",
+    "query observability/logging",
+    "user accounts and workspaces",
+    "multi-format document loaders (docx, pptx, xlsx, md, txt)",
+    "cloud storage connectors (Drive, OneDrive, Dropbox, Box, Notion, Confluence)",
+    "LLM provider swap (Groq to Gemini)",
+    "vision model for table and image extraction"
+  ],
+  "cross_refs": [
+    "backend/eval/",
+    "backend/app/storage/query_log.jsonl",
+    "backend/app/services/groq_client.py",
+    "backend/app/services/pdf_loader.py",
+    "backend/app/api/routes_upload.py"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": "Backlog/todo document — mixes one-line tasks with PRD-grade detail blocks. Not a single decision (ADR), not a coherent product requirements doc (PRD), not an implementation contract (SPEC). Best fit is DOC as a planning/backlog artifact. Some items (eval harness, cloud connectors, auth) contain PRD-shaped detail and could be extracted as separate PRDs downstream."
+}

@@ -1,0 +1,33 @@
+{
+  "source_path": "c:\\Users\\Kyle\\chatbot\\PROJECT.md",
+  "type": "PRD",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "PROJECT.md — Document Q&A SaaS",
+  "summary": "Product brief for a document-forward RAG SaaS defining v1 milestone scope, pillars (citations, chunking, UI polish), constraints, and success criteria.",
+  "scope": [
+    "RAG pipeline",
+    "PDF chunking",
+    "inline citations",
+    "PDF viewer UI",
+    "document-forward UX",
+    "auth/multi-tenancy roadmap",
+    "OAuth document sources",
+    "deployment platform",
+    "LLM provider abstraction"
+  ],
+  "cross_refs": [
+    "backend/app/services/langgraph_rag.py",
+    "backend/app/services/bm25_retriever.py",
+    "backend/app/services/vector_store.py",
+    "backend/app/services/reranker.py",
+    "backend/app/services/groq_client.py",
+    "backend/app/services/pdf_loader.py",
+    "backend/app/services/chunker.py",
+    "frontend/src/storage.js",
+    "frontend/src/components/MarkdownBoundary.jsx"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": "Strong PRD signals: product intent, milestone goals, success criteria, out-of-scope list, user-facing pillars. Contains some SPEC-adjacent constraints (blacklisted libs, framework lock-in) and an open-decisions table for ADRs to resolve, but document overall is requirements-shaped, not a decision record or technical contract."
+}
