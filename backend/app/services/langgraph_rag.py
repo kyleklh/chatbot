@@ -28,6 +28,7 @@ def _rrf_merge(*rankings: list[dict[str, Any]], k: int = 60) -> list[dict[str, A
 
 class RAGState(TypedDict):
     document_id: str | None
+    document_ids: list[str] | None
     original_question: str
     rewritten_question: str
     sources: list[dict[str, Any]]
@@ -79,11 +80,13 @@ def retrieve_node(state: RAGState) -> RAGState:
         query_embedding=query_embedding,
         top_k=RAG_TOP_K,
         document_id=state["document_id"],
+        document_ids=state.get("document_ids"),
     )
     bm25_sources = search_bm25(
         query=original,
         top_k=RAG_TOP_K,
         document_id=state["document_id"],
+        document_ids=state.get("document_ids"),
     )
 
     sources = _rrf_merge(vector_sources, bm25_sources)
@@ -203,9 +206,11 @@ def answer_question_with_graph(
     document_id: str | None,
     question: str,
     history: list[dict[str, str]] | None = None,
+    document_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     initial_state: RAGState = {
         "document_id": document_id,
+        "document_ids": document_ids,
         "original_question": question,
         "rewritten_question": question,
         "sources": [],
@@ -227,9 +232,11 @@ def stream_answer_with_graph(
     document_id: str | None,
     question: str,
     history: list[dict[str, str]],
+    document_ids: list[str] | None = None,
 ) -> Generator[str, None, None]:
     state: RAGState = {
         "document_id": document_id,
+        "document_ids": document_ids,
         "original_question": question,
         "rewritten_question": question,
         "sources": [],

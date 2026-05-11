@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { streamChat } from '../api';
+import MarkdownBoundary from './MarkdownBoundary';
 
 function CitationBadge({ num, source, onClick }) {
   const idx = parseInt(num, 10) - 1;
@@ -82,7 +83,7 @@ function UserMessage({ text }) {
 function MessageActions({ onCopy, onRegenerate, onFeedback, copied, rating }) {
   const btn = "p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 hover:bg-stone-100 cursor-pointer transition-colors duration-150";
   return (
-    <div className="flex items-center gap-0.5 mt-1.5 -ml-1.5 opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 transition-opacity duration-150">
+    <div className="flex items-center gap-0.5 opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 transition-opacity duration-150">
       <button onClick={onCopy} aria-label={copied ? 'Copied' : 'Copy'} title={copied ? 'Copied' : 'Copy'} className={btn}>
         {copied ? (
           <svg className="w-3.5 h-3.5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -115,8 +116,38 @@ function MessageActions({ onCopy, onRegenerate, onFeedback, copied, rating }) {
   );
 }
 
-function AssistantMessage({ text, isStreaming, sources, onCitationClick, onRegenerate, canRegenerate }) {
+function SourcesPill({ count, isActive, onClick }) {
+  if (!count) return null;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={isActive ? `Viewing ${count} sources` : `Show ${count} sources for this message`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border cursor-pointer transition-all duration-150 ${
+        isActive
+          ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+          : 'bg-white border-stone-200 text-zinc-500 hover:border-indigo-200 hover:text-indigo-600 hover:bg-indigo-50/50'
+      }`}
+    >
+      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+      </svg>
+      <span>{count} source{count === 1 ? '' : 's'}</span>
+      {isActive && <span className="text-indigo-500/70 font-mono text-[10px]">· viewing</span>}
+    </button>
+  );
+}
+
+// Strip a trailing unclosed `[...` from streaming text so remark-gfm doesn't
+// crash on a half-arrived citation/link.
+function sanitizeStreamingMarkdown(text) {
+  if (!text) return text;
+  return text.replace(/\[[^\]\n]*$/, '');
+}
+
+function AssistantMessage({ text, isStreaming, sources, isActive, onSelect, onViewSource, onRegenerate, canRegenerate }) {
   const showCursor = isStreaming && text !== '';
+  const safeText = sanitizeStreamingMarkdown(text);
   const [copied, setCopied] = useState(false);
   const [rating, setRating] = useState(null);
 
@@ -135,6 +166,12 @@ function AssistantMessage({ text, isStreaming, sources, onCitationClick, onRegen
     if (next) console.log('[feedback]', { rating: next, answer: text });
   };
 
+  const handleCitationClick = (idx) => {
+    if (idx == null || !sources?.[idx]) return;
+    onSelect?.();
+    onViewSource?.(sources[idx]);
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="group/msg flex gap-3 items-start">
       <div className="shrink-0 w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center mt-0.5 shadow-sm shadow-indigo-500/30">
@@ -143,20 +180,21 @@ function AssistantMessage({ text, isStreaming, sources, onCitationClick, onRegen
         </svg>
       </div>
       <div className="flex-1 min-w-0">
-      <div className="rounded-2xl rounded-tl-sm bg-white border border-stone-200 px-4 py-3 shadow-sm">
+      <div className={`rounded-2xl rounded-tl-sm bg-white border px-4 py-3 shadow-sm transition-colors duration-200 ${isActive ? 'border-indigo-300' : 'border-stone-200'}`}>
         {isStreaming && text === '' ? (
           <LoadingDots />
         ) : (
           <div className={showCursor ? 'streaming-cursor' : ''}>
+            <MarkdownBoundary resetKey={safeText} fallbackText={safeText}>
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                p: ({ children }) => <p className="text-[15px] leading-relaxed text-zinc-800 mb-2 last:mb-0">{renderWithCitations(children, sources, onCitationClick)}</p>,
-                strong: ({ children }) => <strong className="font-semibold text-zinc-900">{renderWithCitations(children, sources, onCitationClick)}</strong>,
+                p: ({ children }) => <p className="text-[15px] leading-relaxed text-zinc-800 mb-2 last:mb-0">{renderWithCitations(children, sources, handleCitationClick)}</p>,
+                strong: ({ children }) => <strong className="font-semibold text-zinc-900">{renderWithCitations(children, sources, handleCitationClick)}</strong>,
                 em: ({ children }) => <em className="italic text-zinc-700">{children}</em>,
                 ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2 text-[15px] text-zinc-800">{children}</ul>,
                 ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2 text-[15px] text-zinc-800">{children}</ol>,
-                li: ({ children }) => <li className="text-[15px] leading-relaxed text-zinc-800">{renderWithCitations(children, sources, onCitationClick)}</li>,
+                li: ({ children }) => <li className="text-[15px] leading-relaxed text-zinc-800">{renderWithCitations(children, sources, handleCitationClick)}</li>,
                 code: ({ children }) => <code className="bg-stone-100 text-zinc-700 rounded px-1.5 py-0.5 text-[13px] font-mono">{children}</code>,
                 h1: ({ children }) => <h1 className="text-base font-semibold text-zinc-900 mb-1.5 mt-3 tracking-tight">{children}</h1>,
                 h2: ({ children }) => <h2 className="text-[15px] font-semibold text-zinc-900 mb-1 mt-2 tracking-tight">{children}</h2>,
@@ -173,19 +211,25 @@ function AssistantMessage({ text, isStreaming, sources, onCitationClick, onRegen
                 td: ({ children }) => <td className="px-2.5 py-1.5 text-zinc-800 whitespace-nowrap">{children}</td>,
               }}
             >
-              {text}
+              {safeText}
             </ReactMarkdown>
+            </MarkdownBoundary>
           </div>
         )}
       </div>
       {!isStreaming && text !== '' && (
-        <MessageActions
-          onCopy={handleCopy}
-          onRegenerate={canRegenerate ? onRegenerate : null}
-          onFeedback={handleFeedback}
-          copied={copied}
-          rating={rating}
-        />
+        <div className="mt-1.5 flex items-center gap-1.5">
+          <SourcesPill count={sources?.length || 0} isActive={isActive} onClick={onSelect} />
+          <div className="ml-auto">
+            <MessageActions
+              onCopy={handleCopy}
+              onRegenerate={canRegenerate ? onRegenerate : null}
+              onFeedback={handleFeedback}
+              copied={copied}
+              rating={rating}
+            />
+          </div>
+        </div>
       )}
       </div>
     </motion.div>
@@ -305,13 +349,19 @@ const PLACEHOLDERS = [
   'What were the financial highlights?',
 ];
 
-export default function ChatPanel({ onAnswer, hasDocuments, sources, onCitationClick }) {
-  const [messages, setMessages] = useState([]);
+export default function ChatPanel({ messages, onMessagesChange, onAnswer, hasDocuments, onViewSource, queryDocumentIds }) {
+  const setMessages = onMessagesChange;
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(null);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
+
+  const selectActive = (idx) => {
+    setActiveIndex(idx);
+    onAnswer?.(messages[idx]?.sources || []);
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -351,8 +401,15 @@ export default function ChatPanel({ onAnswer, hasDocuments, sources, onCitationC
           return updated;
         });
       },
-      (sources) => {
-        onAnswer?.(sources);
+      (srcs) => {
+        setMessages(prev => {
+          const updated = [...prev];
+          const lastIdx = updated.length - 1;
+          updated[lastIdx] = { ...updated[lastIdx], sources: srcs };
+          setActiveIndex(lastIdx);
+          return updated;
+        });
+        onAnswer?.(srcs);
         setIsLoading(false);
       },
       (err) => {
@@ -364,6 +421,7 @@ export default function ChatPanel({ onAnswer, hasDocuments, sources, onCitationC
         onAnswer?.([]);
         setIsLoading(false);
       },
+      { documentIds: queryDocumentIds },
     );
   };
 
@@ -391,6 +449,13 @@ export default function ChatPanel({ onAnswer, hasDocuments, sources, onCitationC
         });
       },
       (srcs) => {
+        setMessages(prev => {
+          const updated = [...prev];
+          const lastIdx = updated.length - 1;
+          updated[lastIdx] = { ...updated[lastIdx], sources: srcs };
+          setActiveIndex(lastIdx);
+          return updated;
+        });
         onAnswer?.(srcs);
         setIsLoading(false);
       },
@@ -403,6 +468,7 @@ export default function ChatPanel({ onAnswer, hasDocuments, sources, onCitationC
         onAnswer?.([]);
         setIsLoading(false);
       },
+      { documentIds: queryDocumentIds },
     );
   };
 
@@ -434,8 +500,10 @@ export default function ChatPanel({ onAnswer, hasDocuments, sources, onCitationC
                     key={i}
                     text={msg.text}
                     isStreaming={isLoading && i === messages.length - 1}
-                    sources={i === messages.length - 1 ? sources : null}
-                    onCitationClick={i === messages.length - 1 ? onCitationClick : null}
+                    sources={msg.sources}
+                    isActive={i === activeIndex}
+                    onSelect={() => selectActive(i)}
+                    onViewSource={onViewSource}
                     canRegenerate={!isLoading && i === messages.length - 1 && i > 0 && messages[i - 1]?.type === 'user'}
                     onRegenerate={() => handleRegenerate(i)}
                   />

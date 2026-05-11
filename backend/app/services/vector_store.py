@@ -1,3 +1,4 @@
+import time
 import chromadb
 from typing import Any, TypedDict, cast
 from app.config import CHROMA_DIR, CHROMA_COLLECTION_NAME
@@ -21,6 +22,7 @@ def add_chunks(
     ids: list[str] = []
     documents: list[str] = []
     metadatas: list[dict[str, Any]] = []
+    indexed_at = int(time.time())
 
     for index, chunk in enumerate(chunks):
         ids.append(f"{document_id}_{index}")
@@ -30,6 +32,7 @@ def add_chunks(
             "file_name": file_name,
             "page": chunk["page"],
             "chunk_index": index,
+            "indexed_at": indexed_at,
         })
         
     collection.add(
@@ -46,6 +49,7 @@ def search_chunks(
     query_embedding: list[float],
     top_k: int = 5,
     document_id: str | None = None,
+    document_ids: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     kwargs: dict[str, Any] = {
         "query_embeddings": cast(Any, [query_embedding]),
@@ -53,6 +57,8 @@ def search_chunks(
     }
     if document_id:
         kwargs["where"] = {"document_id": document_id}
+    elif document_ids:
+        kwargs["where"] = {"document_id": {"$in": document_ids}}
     results = collection.query(**kwargs)
 
     sources: list[dict[str, Any]] = []
@@ -88,12 +94,23 @@ def get_all_documents() -> list[dict[str, Any]]:
     for metadata in metadatas_list:
         metadata = cast(dict[str, Any], metadata)
         document_id = metadata.get("document_id")
-
-        if document_id and document_id not in documents:
-            documents[str(document_id)] = {
+        if not document_id:
+            continue
+        key = str(document_id)
+        entry = documents.get(key)
+        if entry is None:
+            documents[key] = {
                 "document_id": document_id,
                 "file_name": metadata.get("file_name"),
+                "chunk_count": 1,
+                "indexed_at": metadata.get("indexed_at"),
             }
+        else:
+            entry["chunk_count"] += 1
+            existing_ts = entry.get("indexed_at")
+            new_ts = metadata.get("indexed_at")
+            if existing_ts is None and new_ts is not None:
+                entry["indexed_at"] = new_ts
 
     return list(documents.values())
 

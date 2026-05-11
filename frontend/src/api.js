@@ -4,16 +4,43 @@ export function pdfUrl(documentId) {
   return `${BASE_URL}/pdf/${documentId}`;
 }
 
-export async function uploadDocument(files) {
+export function uploadDocument(files, { onProgress, onUploadComplete } = {}) {
   const formData = new FormData();
   const fileList = Array.isArray(files) ? files : [files];
   fileList.forEach(f => formData.append('files', f));
-  const res = await fetch(`${BASE_URL}/upload`, { method: 'POST', body: formData });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
-    throw new Error(err.detail || 'Upload failed');
-  }
-  return res.json();
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${BASE_URL}/upload`);
+
+    if (xhr.upload && onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
+        }
+      };
+    }
+    if (xhr.upload && onUploadComplete) {
+      xhr.upload.onload = () => onUploadComplete();
+    }
+
+    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText));
+        } catch {
+          reject(new Error('Invalid response from server'));
+        }
+      } else {
+        let detail = 'Upload failed';
+        try { detail = JSON.parse(xhr.responseText).detail || detail; } catch { /* keep default */ }
+        reject(new Error(detail));
+      }
+    };
+
+    xhr.send(formData);
+  });
 }
 
 export async function getDocuments() {
@@ -28,13 +55,18 @@ export async function deleteDocument(documentId) {
   return res.json();
 }
 
-export async function streamChat(question, documentId, history, onToken, onDone, onError) {
+export async function streamChat(question, documentId, history, onToken, onDone, onError, options = {}) {
   let res;
   try {
     res = await fetch(`${BASE_URL}/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ document_id: documentId, question, history }),
+      body: JSON.stringify({
+        document_id: documentId,
+        document_ids: options.documentIds || null,
+        question,
+        history,
+      }),
     });
   } catch {
     onError(new Error('Network error'));

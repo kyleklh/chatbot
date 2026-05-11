@@ -20,9 +20,7 @@ function clamp(n, lo, hi) {
 
 function buildWindow(center, total) {
   if (!total || total < 1) return [];
-  const c = clamp(center, 1, total);
-  const pages = [c - 1, c, c + 1].filter(p => p >= 1 && p <= total);
-  return Array.from(new Set(pages));
+  return [clamp(center, 1, total)];
 }
 
 export default function PdfViewer({ source, onClose }) {
@@ -196,7 +194,7 @@ export default function PdfViewer({ source, onClose }) {
                   {visiblePages.map(p => (
                     <div key={p} className="relative">
                       <span className="absolute -left-2 top-2 z-10 inline-flex items-center rounded-md bg-white/90 backdrop-blur-sm border border-stone-200 px-1.5 py-0.5 text-[10px] font-mono text-zinc-600 shadow-sm">
-                        p.{p}{p === source.page ? ' · cited' : ''}
+                        p.{p}
                       </span>
                       <Page
                         pageNumber={p}

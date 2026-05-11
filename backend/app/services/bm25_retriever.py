@@ -26,15 +26,25 @@ def rebuild_index() -> None:
     _bm25 = BM25Okapi([c["tokens"] for c in _chunks]) if _chunks else None
 
 
-def search_bm25(query: str, top_k: int, document_id: str | None = None) -> list[dict[str, Any]]:
+def search_bm25(
+    query: str,
+    top_k: int,
+    document_id: str | None = None,
+    document_ids: list[str] | None = None,
+) -> list[dict[str, Any]]:
     if _bm25 is None or not _chunks:
         return []
+    allowed: set[str] | None = None
+    if document_id:
+        allowed = {document_id}
+    elif document_ids:
+        allowed = set(document_ids)
     scores = _bm25.get_scores(_tokenize(query))
     candidates = [
         (chunk, float(score))
         for chunk, score in zip(_chunks, scores)
         if score > 0
-        and (document_id is None or chunk["metadata"].get("document_id") == document_id)
+        and (allowed is None or chunk["metadata"].get("document_id") in allowed)
     ]
     candidates.sort(key=lambda x: x[1], reverse=True)
     return [

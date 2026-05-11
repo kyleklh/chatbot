@@ -12,6 +12,7 @@ def chat(request: ChatRequest):
     history = [{"role": m.role, "content": m.content} for m in request.history]
     return answer_question_with_graph(
         document_id=request.document_id or None,
+        document_ids=request.document_ids or None,
         question=request.question,
         history=history,
     )
@@ -24,6 +25,7 @@ def chat_stream(request: ChatRequest):
     def event_generator():
         for chunk in stream_answer_with_graph(
             document_id=request.document_id or None,
+            document_ids=request.document_ids or None,
             question=request.question,
             history=history,
         ):

@@ -8,6 +8,7 @@ class HistoryMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     document_id: str | None = None
+    document_ids: list[str] | None = None
     question: str
     history: list[HistoryMessage] = []
 
