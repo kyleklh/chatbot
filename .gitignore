@@ -3,6 +3,8 @@ CLAUDE.md
 TODOS.md
 .claude/
 .planning/
+DESIGN_DECISIONS.md
+PROJECT.md
 
 # Python
 __pycache__/
