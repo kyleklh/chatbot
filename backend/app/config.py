@@ -28,6 +28,13 @@ RERANKER_TOP_N = int(os.getenv("RERANKER_TOP_N", "5"))
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1000"))
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "200"))
 
+# Phase 01 chunker token budgets (D-11, D-12). CHUNK_SIZE / CHUNK_OVERLAP above
+# are the legacy char-based knobs and remain until Plan 04 retires their consumers.
+CHILD_CHUNK_TOKENS = int(os.getenv("CHILD_CHUNK_TOKENS", "256"))
+PARENT_CHUNK_TOKENS = int(os.getenv("PARENT_CHUNK_TOKENS", "1024"))
+CHILD_CHUNK_OVERLAP_TOKENS = int(os.getenv("CHILD_CHUNK_OVERLAP_TOKENS", "32"))
+CHUNKER_VERSION = "v2-2026-05"
+
 _cors_env = os.getenv("CORS_ORIGINS", "")
 CORS_ORIGINS: list[str] = (
     [o.strip() for o in _cors_env.split(",") if o.strip()]
