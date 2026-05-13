@@ -55,8 +55,10 @@ def migration_env(tmp_path: Path, synthetic_pdf: Path, monkeypatch: pytest.Monke
     Yields (collection, parents_collection, upload_dir, document_id, file_name).
     """
     client = chromadb.EphemeralClient()
-    fake_children = client.create_collection(name="test_children")
-    fake_parents = client.create_collection(name="test_parents")
+    # Unique collection names per test so re-runs in the same session don't collide.
+    suffix = tmp_path.name
+    fake_children = client.create_collection(name=f"test_children_{suffix}")
+    fake_parents = client.create_collection(name=f"test_parents_{suffix}")
 
     monkeypatch.setattr(vector_store, "collection", fake_children)
     monkeypatch.setattr(vector_store, "_parents_collection", fake_parents)
