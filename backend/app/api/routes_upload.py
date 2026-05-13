@@ -30,25 +30,31 @@ async def _process_file(file: UploadFile) -> dict[str, Any]:
             f.write(chunk)
 
     pages = extract_pdf_pages(file_path)
-    chunks = chunk_pages(pages)
+    children, parents = chunk_pages(
+        pages,
+        document_id=document_id,
+        source_path=file_path,
+        file_name=filename,
+    )
 
-    if not chunks:
+    if not children:
         raise HTTPException(status_code=400, detail=f"{filename}: no text could be extracted. Try a text-based PDF, not a scanned image.")
 
-    embed_source = [chunk.get("embed_text") or chunk["text"] for chunk in chunks]
-    embeddings = embed_texts(embed_source)
+    embed_source = [chunk.get("embed_text") or chunk["text"] for chunk in children]
+    child_embeddings = embed_texts(embed_source)
 
     add_chunks(
         document_id=document_id,
         file_name=filename,
-        chunks=chunks,  # type: ignore
-        embeddings=embeddings,
+        children=children,  # type: ignore
+        parents=parents,  # type: ignore
+        child_embeddings=child_embeddings,
     )
 
     return {
         "document_id": document_id,
         "file_name": filename,
-        "num_chunks": len(chunks),
+        "num_chunks": len(children),
         "num_pages": len(pages),
     }
 

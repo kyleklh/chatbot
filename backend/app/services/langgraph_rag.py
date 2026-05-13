@@ -16,12 +16,12 @@ def _rrf_merge(*rankings: list[dict[str, Any]], k: int = 60) -> list[dict[str, A
     sources: dict[tuple, dict[str, Any]] = {}
     for ranking in rankings:
         for rank, source in enumerate(ranking):
-            key = (source["metadata"]["document_id"], source["metadata"]["chunk_index"])
+            key = (source["metadata"]["document_id"], source["metadata"]["chunk_id"])
             scores[key] = scores.get(key, 0.0) + 1.0 / (k + rank + 1)
             sources[key] = source
     return sorted(
         sources.values(),
-        key=lambda s: scores[(s["metadata"]["document_id"], s["metadata"]["chunk_index"])],
+        key=lambda s: scores[(s["metadata"]["document_id"], s["metadata"]["chunk_id"])],
         reverse=True,
     )
 

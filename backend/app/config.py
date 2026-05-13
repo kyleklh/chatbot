@@ -25,11 +25,7 @@ RAG_MAX_DISTANCE = float(os.getenv("RAG_MAX_DISTANCE", "2.0"))
 RERANKER_MODEL = os.getenv("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
 RERANKER_TOP_N = int(os.getenv("RERANKER_TOP_N", "5"))
 
-CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1000"))
-CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "200"))
-
-# Phase 01 chunker token budgets (D-11, D-12). CHUNK_SIZE / CHUNK_OVERLAP above
-# are the legacy char-based knobs and remain until Plan 04 retires their consumers.
+# Phase 01 chunker token budgets (D-11, D-12). Replaces legacy CHUNK_SIZE/CHUNK_OVERLAP.
 CHILD_CHUNK_TOKENS = int(os.getenv("CHILD_CHUNK_TOKENS", "256"))
 PARENT_CHUNK_TOKENS = int(os.getenv("PARENT_CHUNK_TOKENS", "1024"))
 CHILD_CHUNK_OVERLAP_TOKENS = int(os.getenv("CHILD_CHUNK_OVERLAP_TOKENS", "32"))

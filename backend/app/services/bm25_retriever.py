@@ -16,12 +16,16 @@ def _tokenize(text: str) -> list[str]:
 def rebuild_index() -> None:
     global _bm25, _chunks
     results = collection.get()
-    ids = results.get("ids") or []
     documents = results.get("documents") or []
     metadatas = results.get("metadatas") or []
     _chunks = [
-        {"id": i, "text": d, "tokens": _tokenize(d), "metadata": m}
-        for i, d, m in zip(ids, documents, metadatas)
+        {
+            "id": (m or {}).get("chunk_id") if isinstance(m, dict) else None,
+            "text": d,
+            "tokens": _tokenize(d),
+            "metadata": m,
+        }
+        for d, m in zip(documents, metadatas)
     ]
     _bm25 = BM25Okapi([c["tokens"] for c in _chunks]) if _chunks else None
 
