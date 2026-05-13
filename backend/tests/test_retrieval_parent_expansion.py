@@ -93,11 +93,12 @@ def test_retrieval_parent_expansion(seeded_parents: dict[str, str]) -> None:
         return orig(ids)
 
     import app.services.langgraph_rag as lg
+    original_lookup = lg.parent_lookup  # type: ignore[attr-defined]
     lg.parent_lookup = counting_lookup  # type: ignore[attr-defined]
     try:
         new_state = expand_to_parents_node(_state_with([c_a, c_b, c_c]))
     finally:
-        del lg.parent_lookup  # restore module attr lookup
+        lg.parent_lookup = original_lookup  # type: ignore[attr-defined]
 
     # Context now contains parent text, NOT child text.
     assert "Parent ONE" in new_state["context"]

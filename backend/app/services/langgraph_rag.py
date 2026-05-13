@@ -4,7 +4,7 @@ from typing import Any, Generator, TypedDict
 from langgraph.graph import END, StateGraph
 
 from app.services.embeddings import embed_texts
-from app.services.vector_store import search_chunks
+from app.services.vector_store import search_chunks, parent_lookup
 from app.services.bm25_retriever import search_bm25
 from app.services.groq_client import generate_with_groq, generate_with_messages, stream_with_groq
 from app.services.reranker import rerank
@@ -119,6 +119,55 @@ def filter_sources_node(state: RAGState) -> RAGState:
     return {**state, "filtered_sources": filtered_sources, "context": context}
 
 
+def expand_to_parents_node(state: RAGState) -> RAGState:
+    """Expand each retrieved child chunk to its parent section text (D-04, SC3).
+
+    Child chunk_ids remain on `filtered_sources` for citation identity. The
+    LLM-facing `context` is rewritten to parent text, deduped by `parent_ref`.
+    Children whose `parent_ref` does not resolve fall back to their own text
+    so a missing parent never silently drops a source.
+    """
+    filtered = state.get("filtered_sources") or []
+    if not filtered:
+        return state
+
+    distinct_refs: list[str] = []
+    seen_refs: set[str] = set()
+    for s in filtered:
+        ref = (s.get("metadata") or {}).get("parent_ref")
+        if not ref or ref == "self":
+            continue
+        if ref not in seen_refs:
+            seen_refs.add(ref)
+            distinct_refs.append(ref)
+
+    if not distinct_refs:
+        return state
+
+    parents = parent_lookup(distinct_refs)
+    parent_texts: dict[str, str] = {pid: row["text"] for pid, row in parents.items()}
+
+    context_parts: list[str] = []
+    rendered_refs: set[str] = set()
+    for index, source in enumerate(filtered):
+        meta = source.get("metadata") or {}
+        ref = meta.get("parent_ref")
+        page = meta.get("page", source.get("page"))
+        filename = source.get("filename") or meta.get("file_name") or ""
+        if ref and ref != "self" and ref in parent_texts:
+            if ref in rendered_refs:
+                continue
+            rendered_refs.add(ref)
+            block_text = parent_texts[ref]
+        else:
+            block_text = source.get("text", "")
+        context_parts.append(
+            f"[Source {index + 1}] (Page {page}, {filename})\n{block_text}"
+        )
+
+    return {**state, "context": "\n\n---\n\n".join(context_parts)}
+
+
 def should_answer(state: RAGState) -> str:
     return "no_context" if not state["filtered_sources"] else "answer"
 
@@ -181,6 +230,7 @@ def build_rag_graph():
     graph.add_node("rewrite_question", rewrite_question_node)
     graph.add_node("retrieve", retrieve_node)
     graph.add_node("filter_sources", filter_sources_node)
+    graph.add_node("expand_to_parents", expand_to_parents_node)
     graph.add_node("no_context", no_context_node)
     graph.add_node("answer", answer_node)
 
@@ -188,8 +238,9 @@ def build_rag_graph():
 
     graph.add_edge("rewrite_question", "retrieve")
     graph.add_edge("retrieve", "filter_sources")
+    graph.add_edge("filter_sources", "expand_to_parents")
     graph.add_conditional_edges(
-        "filter_sources",
+        "expand_to_parents",
         should_answer,
         {"answer": "answer", "no_context": "no_context"},
     )
@@ -249,6 +300,7 @@ def stream_answer_with_graph(
     state = rewrite_question_node(state)
     state = retrieve_node(state)
     state = filter_sources_node(state)
+    state = expand_to_parents_node(state)
 
     if not state["filtered_sources"]:
         yield json.dumps({"token": "I couldn't find that in the uploaded document."})
