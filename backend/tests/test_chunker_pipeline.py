@@ -82,11 +82,87 @@ def test_user_id_seam(synthetic_pdf: Path) -> None:
         assert c["metadata"].get("user_id") == "u1", c["metadata"]
 
 
-@pytest.mark.xfail(strict=True, reason="Wave 0 stub — implemented in plan 01-07")
-def test_no_split_rows():
-    assert False, "Wave 0 stub"
+# ---------------------------------------------------------------------------
+# SC1 parametrized integration over backend/tests/fixtures/pdfs/ (Plan 01-07)
+#
+# When the fixtures dir is empty, each test calls pytest.skip(...) inside its
+# body so collection still succeeds (collection-time skip would otherwise
+# xpass and confuse the CI signal). Drop ≥3 PDFs into the fixtures dir to
+# light up SC1 per D-13.
+# ---------------------------------------------------------------------------
+
+_FIXTURES_DIR = Path(__file__).parent / "fixtures" / "pdfs"
+_USER_PDFS = sorted(_FIXTURES_DIR.glob("*.pdf"))
 
 
-@pytest.mark.xfail(strict=True, reason="Wave 0 stub — implemented in plan 01-07")
-def test_header_attached_to_body():
-    assert False, "Wave 0 stub"
+@pytest.mark.parametrize("pdf_path", _USER_PDFS or [None], ids=lambda p: p.name if p else "no-pdfs")
+def test_no_split_rows(pdf_path):
+    if pdf_path is None:
+        pytest.skip("no user PDFs dropped into backend/tests/fixtures/pdfs/ yet — see README")
+    children, _parents = chunk_pages(
+        extract_pdf_pages(str(pdf_path)),
+        document_id=f"sc1-{pdf_path.stem}",
+        source_path=str(pdf_path),
+    )
+    for child in children:
+        if child["metadata"].get("kind") != "table_row_group":
+            continue
+        text = child["text"]
+        # Every line starting with `|` must have ≥ 2 unescaped pipes (balanced cells).
+        for line in text.split("\n"):
+            if not line.startswith("|"):
+                continue
+            # Count un-escaped pipes only.
+            stripped = line.replace("\\|", "")
+            assert stripped.count("|") >= 2, (
+                f"unbalanced table row in {pdf_path.name} chunk "
+                f"{child['metadata']['chunk_id']}: {line!r}"
+            )
+        # Pitfall 2 guard: a table_row_group chunk that begins immediately with
+        # a `| value |` row (no header above) suggests a row was orphaned. Every
+        # row_group_split output starts with title + header + separator, so the
+        # first non-empty line should NOT match a pure-data row before a `---`
+        # separator appears.
+        lines = [ln for ln in text.split("\n") if ln.strip()]
+        if lines:
+            saw_sep = any("---" in ln for ln in lines[:3])
+            assert saw_sep, (
+                f"table chunk in {pdf_path.name} appears to lack header/separator "
+                f"(chunk_id={child['metadata']['chunk_id']}): first lines={lines[:3]!r}"
+            )
+
+
+@pytest.mark.parametrize("pdf_path", _USER_PDFS or [None], ids=lambda p: p.name if p else "no-pdfs")
+def test_header_attached_to_body(pdf_path):
+    if pdf_path is None:
+        pytest.skip("no user PDFs dropped into backend/tests/fixtures/pdfs/ yet — see README")
+    children, _parents = chunk_pages(
+        extract_pdf_pages(str(pdf_path)),
+        document_id=f"sc1-{pdf_path.stem}",
+        source_path=str(pdf_path),
+    )
+
+    # No orphan prose chunks (a 1-2 word chunk usually means a header floated alone).
+    for child in children:
+        if child["metadata"].get("kind") != "prose":
+            continue
+        word_count = len(child["text"].split())
+        assert word_count > 5, (
+            f"orphan/tiny prose chunk in {pdf_path.name} "
+            f"(chunk_id={child['metadata']['chunk_id']}, words={word_count}): "
+            f"{child['text']!r}"
+        )
+
+    # Every non-`page-*` parent_ref must own at least 100 chars of text across
+    # its children — proves the header→body relationship survives chunking.
+    by_parent: dict[str, int] = {}
+    for child in children:
+        ref = child["metadata"].get("parent_ref")
+        if not ref or ref.startswith("page-"):
+            continue
+        by_parent[ref] = by_parent.get(ref, 0) + len(child["text"])
+    for ref, total_chars in by_parent.items():
+        assert total_chars > 100, (
+            f"parent {ref} in {pdf_path.name} has only {total_chars} chars across its "
+            f"children — header likely orphaned from its body (SC1 / D-04 violation)"
+        )
