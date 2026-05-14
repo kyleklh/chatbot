@@ -133,6 +133,34 @@ def test_no_split_rows(pdf_path):
 
 
 @pytest.mark.parametrize("pdf_path", _USER_PDFS or [None], ids=lambda p: p.name if p else "no-pdfs")
+def test_chunk_ids_unique(pdf_path):
+    # Regression for the Apple-10-K upload failure: legal documents repeat
+    # identical clauses verbatim under the same H1/H2 path (RSU Award Agreement
+    # clauses, dual auditor opening lines), and a pure content-derived chunk_id
+    # collides on them. Chroma rejects the bulk add with DuplicateIDError.
+    # The assembler must disambiguate repeated (section_path, text) within a
+    # single document so every emitted chunk_id is unique.
+    if pdf_path is None:
+        pytest.skip("no user PDFs dropped into backend/tests/fixtures/pdfs/ yet — see README")
+    children, parents = chunk_pages(
+        extract_pdf_pages(str(pdf_path)),
+        document_id=f"unique-{pdf_path.stem}",
+        source_path=str(pdf_path),
+    )
+    ids = [c["metadata"]["chunk_id"] for c in children] + [
+        p["metadata"]["chunk_id"] for p in parents
+    ]
+    seen: dict[str, int] = {}
+    for cid in ids:
+        seen[cid] = seen.get(cid, 0) + 1
+    dupes = {cid: n for cid, n in seen.items() if n > 1}
+    assert not dupes, (
+        f"chunk_id collisions in {pdf_path.name}: {len(dupes)} ids repeated "
+        f"(top 3: {dict(list(dupes.items())[:3])})"
+    )
+
+
+@pytest.mark.parametrize("pdf_path", _USER_PDFS or [None], ids=lambda p: p.name if p else "no-pdfs")
 def test_header_attached_to_body(pdf_path):
     if pdf_path is None:
         pytest.skip("no user PDFs dropped into backend/tests/fixtures/pdfs/ yet — see README")

@@ -305,6 +305,20 @@ def _walk_document(
     children: list[dict[str, Any]] = []
     parents: list[dict[str, Any]] = []
 
+    # Tracks how many times we've already minted an id for a given
+    # (section_path, text) pair within this document. Legal documents
+    # (e.g., Apple 10-K RSU agreements) legitimately repeat identical
+    # clauses verbatim under the same section path; without disambiguation
+    # the content-derived chunk_id would collide and Chroma's bulk add
+    # rejects the entire batch.
+    occurrence_seen: dict[tuple[str, str], int] = {}
+
+    def _occurrence(path: str, text: str) -> int:
+        key = (path, text)
+        n = occurrence_seen.get(key, 0)
+        occurrence_seen[key] = n + 1
+        return n
+
     for sec in sections:
         path = sec["path"]
         pages_set = sec["pages"]
@@ -333,7 +347,9 @@ def _walk_document(
             parent_text = (parent_text + "\n\n" + "\n\n".join(p for p, _ in table_parts)).strip()
         if not parent_text:
             continue
-        parent_chunk_id = make_chunk_id(document_id, path, parent_text)
+        parent_chunk_id = make_chunk_id(
+            document_id, path, parent_text, occurrence=_occurrence(path, parent_text)
+        )
         parent_meta = build_chunk_metadata(
             chunk_id=parent_chunk_id,
             document_id=document_id,
@@ -354,7 +370,7 @@ def _walk_document(
         # tracker (RCTS re-segmented across the buffer); use the section_page.
         # Improvement candidate: track piece→page mapping; not required by D-11.
         for piece in prose_parts:
-            cid = make_chunk_id(document_id, path, piece)
+            cid = make_chunk_id(document_id, path, piece, occurrence=_occurrence(path, piece))
             meta = build_chunk_metadata(
                 chunk_id=cid,
                 document_id=document_id,
@@ -372,7 +388,7 @@ def _walk_document(
             })
 
         for piece, page_num in table_parts:
-            cid = make_chunk_id(document_id, path, piece)
+            cid = make_chunk_id(document_id, path, piece, occurrence=_occurrence(path, piece))
             # D-06: embed_text is a natural-language summary of the table for
             # better recall — for now use the title + first-column labels.
             embed_text = _table_embed_text(piece)

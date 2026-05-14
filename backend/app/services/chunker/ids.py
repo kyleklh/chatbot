@@ -23,13 +23,34 @@ ID_LEN_HEX: int = 12  # 48-bit space; see RESEARCH § "Pattern 3"
 _SEP = "\x1f"  # ASCII unit-separator; cannot appear inside any of the three fields
 
 
-def make_chunk_id(document_id: str, section_path: str, chunk_text: str) -> str:
+def make_chunk_id(
+    document_id: str,
+    section_path: str,
+    chunk_text: str,
+    *,
+    occurrence: int = 0,
+) -> str:
     """Return a deterministic 12-hex-char chunk id for the given content.
 
-    The id is content-derived: identical (document_id, section_path, chunk_text)
-    always produces the same id. CHUNKER_VERSION is intentionally excluded so
-    that ids survive chunker version bumps when the underlying content does
-    not change.
+    The id is content-derived: identical (document_id, section_path, chunk_text,
+    occurrence) always produces the same id. CHUNKER_VERSION is intentionally
+    excluded so that ids survive chunker version bumps when the underlying
+    content does not change.
+
+    `occurrence` disambiguates legitimately repeated text within a single
+    section (observed in Apple's 10-K: identical RSU Award Agreement clauses
+    appear up to 4x under the same H1/H2 path; both auditor reports open with
+    the same line). When `occurrence == 0` the hash input is unchanged for
+    backward compatibility — any PDF without intra-section duplicates produces
+    identical ids before and after this parameter was added. The assembler
+    increments `occurrence` only for the 2nd, 3rd, ... appearance of the same
+    (section_path, text) tuple within one document, so stability across
+    reindexes holds whenever chunker output ordering is deterministic.
     """
-    payload = (document_id + _SEP + section_path + _SEP + chunk_text).encode("utf-8")
+    if occurrence == 0:
+        payload = (document_id + _SEP + section_path + _SEP + chunk_text).encode("utf-8")
+    else:
+        payload = (
+            document_id + _SEP + section_path + _SEP + str(occurrence) + _SEP + chunk_text
+        ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()[:ID_LEN_HEX]
