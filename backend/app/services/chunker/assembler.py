@@ -208,12 +208,24 @@ def _walk_document(
         page_num = page.number + 1  # 1-indexed for downstream consumers
 
         # ---- Detect table regions ------------------------------------------------
+        # PyMuPDF's find_tables() can return Table objects with empty cells that
+        # blow up on `.bbox` access (see RBC ar_2025 fixture). Treat each table's
+        # bbox/extract as best-effort and skip the offending one — Phase 1.5
+        # will handle hard-table failures via the multimodal path.
         try:
             finder = page.find_tables()
-            tables = list(finder.tables) if finder else []
+            raw_tables = list(finder.tables) if finder else []
         except Exception:
-            tables = []
-        table_bboxes = [tuple(t.bbox) for t in tables]
+            raw_tables = []
+        tables: list[Any] = []
+        table_bboxes: list[tuple[float, float, float, float]] = []
+        for t in raw_tables:
+            try:
+                bbox = tuple(t.bbox)
+            except Exception:
+                continue
+            tables.append(t)
+            table_bboxes.append(bbox)  # type: ignore[arg-type]
 
         # ---- Walk text blocks/lines, skipping anything inside a table ------------
         td = page.get_text("dict")
