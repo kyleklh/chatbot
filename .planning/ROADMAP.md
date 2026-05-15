@@ -29,7 +29,16 @@ v1 is a 1–2 week milestone that turns the current working-but-loose RAG chatbo
   3. Retrieval can fetch a small chunk and expand to its parent section (~1–2k tok) for the LLM context window.
   4. The existing upload → chunk → embed → ask pipeline still works end-to-end (no happy-path regression).
   5. Any new persistent fields added to chunk metadata are either `user_id`-scoped or trivially migrate-able to be.
-**Plans**: TBD
+**Plans**: 9 plans
+- [x] 01-00-PLAN.md — Wave 0 test scaffolding + tiktoken dependency
+- [x] 01-01-PLAN.md — Stable chunk_id derivation + token-length helper
+- [x] 01-02-PLAN.md — Header detection via pymupdf4llm.IdentifyHeaders + bold fallback
+- [x] 01-03-PLAN.md — Generic table chunking; delete _fitz_table_to_markdown
+- [x] 01-04-PLAN.md — Hierarchical assembler + metadata schema + retrieval-key migration
+- [x] 01-05-PLAN.md — Parent expansion node in LangGraph retrieval
+- [x] 01-06-PLAN.md — Startup re-index migration via FastAPI lifespan
+- [x] 01-07-PLAN.md — SC1 integration tests on 3 user-provided sample PDFs
+- [x] 01-08-PLAN.md — End-to-end smoke + document_ids filter regression
 **UI hint**: no
 
 ### Phase 2: Citations backend
@@ -42,7 +51,11 @@ v1 is a 1–2 week milestone that turns the current working-but-loose RAG chatbo
   3. The per-message `sources[]` payload (LOCKED schema) carries chunk_id + page + quote per source.
   4. The LLM call site is behind a thin abstraction so switching from Groq to Gemini/OpenRouter/Anthropic doesn't require touching `langgraph_rag.py` graph nodes.
   5. `/chat/stream` continues to accept the LOCKED `document_ids: list[str]` filter parameter without regression.
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 02-00-PLAN.md — Wave 0 test scaffolding: stub test files, semantic marker, requirements-dev.txt, golden eval seed
+- [ ] 02-01-PLAN.md — LLMProvider Protocol + GroqProvider + get_provider() factory; groq_client shrink + test migration
+- [ ] 02-02-PLAN.md — CitationStreamParser + difflib verbatim-quote extractor + Source/DoneEvent schemas
+- [ ] 02-03-PLAN.md — Wire provider seam + parser into langgraph_rag; compact [N] prompt; SC1/SC5 integration tests
 **UI hint**: no
 
 ### Phase 3: Citations frontend

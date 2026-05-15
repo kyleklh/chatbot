@@ -1,25 +1,42 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: executing
+stopped_at: Phase 2 context gathered (marker format & emission + LLM provider abstraction locked). Ready to plan Phase 2.
+last_updated: "2026-05-15T01:39:28.285Z"
+last_activity: 2026-05-15 -- Phase 02 planning complete
+progress:
+  total_phases: 6
+  completed_phases: 1
+  total_plans: 13
+  completed_plans: 9
+  percent: 69
+---
+
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-11)
+See: .planning/PROJECT.md (updated 2026-05-14)
 
 **Core value:** Every assistant claim has a clickable inline citation that jumps to the correct page with the correct supporting quote.
-**Current focus:** Phase 1 — Chunking rebuild
+**Current focus:** Phase 2 — Citations backend
 
 ## Current Position
 
-Phase: 1 of 6 (Chunking rebuild)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-05-11 — Roadmap created from new-project ingest of DESIGN_DECISIONS.md (ADR), PROJECT.md source (PRD), and TODOS.md (DOC).
+Phase: 2 of 6 (citations backend)
+Plan: Not started
+Status: Ready to execute
+Last activity: 2026-05-15 -- Phase 02 planning complete
 
 Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
+
+- Total plans completed: 9
 - Average duration: —
 - Total execution time: —
 
@@ -28,8 +45,10 @@ Progress: [░░░░░░░░░░] 0%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | — | — | — | — |
+| 01 | 9 | - | - |
 
 **Recent Trend:**
+
 - Last 5 plans: —
 - Trend: —
 
@@ -39,7 +58,9 @@ Progress: [░░░░░░░░░░] 0%
 
 ### Decisions
 
-7 LOCKED ADR decisions in PROJECT.md Key Decisions (DEC-per-message-sources, DEC-conversation-history-sidebar, DEC-per-document-filter-chips, DEC-upload-progress-states, DEC-mobile-deferred, DEC-document-management-tooltip, DEC-implementation-order). 6 open decisions deferred to phase planning (extractor, chunking algorithm, vector store keep/swap, auth provider, deploy platform, v1 LLM provider).
+7 LOCKED ADR decisions in PROJECT.md Key Decisions (DEC-per-message-sources, DEC-conversation-history-sidebar, DEC-per-document-filter-chips, DEC-upload-progress-states, DEC-mobile-deferred, DEC-document-management-tooltip, DEC-implementation-order).
+
+Phase 1 resolved 3 open decisions: PDF extractor = PyMuPDF + pymupdf4llm; chunking = layout-aware hierarchical parent-child with content-derived chunk_id (occurrence-disambiguated, commit 82b52c1); vector store = kept Chroma + separate `docurag_parents` collection. 3 open decisions remain (auth provider, deploy platform, v1 LLM provider).
 
 ### Pending Todos
 
@@ -47,9 +68,15 @@ None yet. Backlog topics captured in `.planning/intel/context.md` (evaluation ha
 
 ### Blockers/Concerns
 
-- Groq free tier rate-limits aggressively, sometimes truncating streams so `onDone` never fires → empty sources panel. Mitigation = REQ-provider-flexible-llm (verified in Phase 2). Watch during Phase 2.
-- Open decision in Phase 1: which PDF extractor (PyMuPDF base is leading candidate; `pdfplumber` and `docling` are LOCKED-out).
+- Groq free tier rate-limits aggressively, sometimes truncating streams so `onDone` never fires → empty sources panel. Confirmed again in Phase 1 UAT (LLM call returned "AI service temporarily unavailable" while retrieval succeeded). Mitigation = REQ-provider-flexible-llm. **Address in Phase 2.**
+- ⚠️ [Phase 1] `pdf_loader.py` PyMuPDF path raises `min() iterable argument is empty` on the Apple 10-K and falls back to pypdf. The assembler's own `pymupdf.open` still works so the user flow is unaffected, but the loader bug should be cleaned up — candidate for Phase 1.5 or fold into Phase 2.
+- ⚠️ [Phase 1] Retrieval/reranking favored prose intro-sentences over the actual table chunk for table-targeted questions. Tables ARE chunked correctly (122 `table_row_group` chunks verified); this is a retrieval-ranking gap to address when Phase 2/3 touch retrieval.
+- ⚠️ [Phase 1] Startup re-index migration is silent on the no-op path — no way to confirm it ran. Minor observability gap; add a "scanned N docs, 0 need re-index" log.
 - Open decision in Phase 5: deployment platform among Vercel+Fly/Render split, single VPS+Docker, Render full-stack.
+
+### Phase 1 UAT
+
+`.planning/phases/01-chunking-rebuild/01-UAT.md` — status: complete, 6/6 passed, 0 open issues. One blocker (DuplicateIDError on repeated legal clauses) found and fixed mid-session (commit 82b52c1). Note: `.planning/` is gitignored in this repo, so UAT/planning artifacts live on disk only.
 
 ## Deferred Items
 
@@ -59,6 +86,6 @@ None yet. Backlog topics captured in `.planning/intel/context.md` (evaluation ha
 
 ## Session Continuity
 
-Last session: 2026-05-11
-Stopped at: Roadmap + STATE created from new-project ingest. Next step is `/gsd-plan-phase 1`.
-Resume file: None
+Last session: 2026-05-14
+Stopped at: Phase 2 context gathered (marker format & emission + LLM provider abstraction locked). Ready to plan Phase 2.
+Resume file: .planning/phases/02-citations-backend/02-CONTEXT.md
