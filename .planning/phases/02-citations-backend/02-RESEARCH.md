@@ -311,11 +311,13 @@ Phase 2 is a **code/config change** — not a rename or migration. No stored dat
 
 Test framework already in place — `pytest` with `fastapi.testclient.TestClient`, hermetic Chroma via `chromadb.EphemeralClient()`, Groq stubbed via `monkeypatch`. Phase 1 built the harness pattern.
 
+> **TEST-FILE NAMING (reconciled with VALIDATION.md — authoritative):** This research originally sketched `test_provider_seam.py` and `test_citations_parser.py`. The final, authoritative names are **`test_llm_provider.py`** (SC4 — provider seam, supersedes `test_provider_seam.py`) and **`test_citations_eval.py`** (SC1 + SC2 + SC3 + parser edge cases, supersedes `test_citations_parser.py`). VALIDATION.md's per-task verification map is canonical for test-file names; the tables below have been updated to the final names. `test_provider_seam.py` and `test_citations_parser.py` will NOT exist on disk.
+
 ### Test Framework
 | Property | Value |
 |----------|-------|
 | Framework | `pytest` (in use; `backend/tests/`) |
-| Config | none detected — tests run via `pytest backend/tests/` from `backend/` |
+| Config | `backend/pytest.ini` (extended in Wave 0 to register the `semantic` marker) |
 | Fixtures | `backend/tests/conftest.py` — `synthetic_pdf` (3-page deterministic PDF), `chroma_in_memory` |
 | Quick run | `pytest backend/tests/test_citations_eval.py -v` (new, code-only, deterministic) |
 | Full suite | `pytest backend/tests/ -v` |
@@ -324,29 +326,28 @@ Test framework already in place — `pytest` with `fastapi.testclient.TestClient
 ### Phase Requirements → Test Map
 | SC | Behavior | Test Type | Automated Command | File Exists? |
 |----|----------|-----------|-------------------|-------------|
-| SC1 | `[N]` markers emitted DURING streaming | unit (parser) + integration | `pytest backend/tests/test_citations_parser.py -x` | ❌ Wave 0 |
-| SC2 | marker → chunk_id + document_id + page + verbatim quote | code (substring assert) | `pytest backend/tests/test_citations_eval.py -k quote -x` | ❌ Wave 0 |
-| SC3 | per-message `sources[]` carries chunk_id + page + quote | code (`DoneEvent.model_validate`) | `pytest backend/tests/test_citations_eval.py -k done_event -x` | ❌ Wave 0 |
-| SC4 | LLM call site behind thin abstraction; swap doesn't touch graph nodes | code (fake `LLMProvider`) | `pytest backend/tests/test_provider_seam.py -x` | ❌ Wave 0 |
+| SC1 | `[N]` markers emitted DURING streaming | unit (parser) + integration | `pytest backend/tests/test_citations_eval.py -k stream_marker -x` | ❌ Wave 0 (`test_citations_eval.py`) |
+| SC2 | marker → chunk_id + document_id + page + verbatim quote | code (substring assert) | `pytest backend/tests/test_citations_eval.py -k verbatim -x` | ❌ Wave 0 (`test_citations_eval.py`) |
+| SC3 | per-message `sources[]` carries chunk_id + page + quote | code (`DoneEvent.model_validate`) | `pytest backend/tests/test_citations_eval.py -k done_event -x` | ❌ Wave 0 (`test_citations_eval.py`) |
+| SC4 | LLM call site behind thin abstraction; swap doesn't touch graph nodes | code (fake `LLMProvider`) | `pytest backend/tests/test_llm_provider.py -x` | ❌ Wave 0 (`test_llm_provider.py`) |
 | SC5 | `document_ids` filter regression-free | code (extend existing) | `pytest backend/tests/test_pipeline_smoke.py::test_document_ids_filter -x` | ✅ EXISTS — extend it |
-| — | parser: split markers, drift, unresolvable strip | unit | `pytest backend/tests/test_citations_parser.py -x` | ❌ Wave 0 |
+| — | parser: split markers, drift, unresolvable strip | unit | `pytest backend/tests/test_citations_eval.py -x` | ❌ Wave 0 (`test_citations_eval.py`) |
 | — | non-streaming `/chat` still works | integration | `pytest backend/tests/test_pipeline_smoke.py -x` | ✅ EXISTS — `test_pipeline_smoke` (extend for citations) |
 | — | `groq_client` / `GroqProvider` error translation | unit | `pytest backend/tests/test_groq_client.py -x` | ✅ EXISTS — must migrate |
 
 ### Sampling Rate
-- **Per task commit:** `pytest backend/tests/test_citations_parser.py backend/tests/test_citations_eval.py backend/tests/test_provider_seam.py -x` (fast, deterministic, no LLM calls)
+- **Per task commit:** `pytest backend/tests/test_citations_eval.py backend/tests/test_llm_provider.py -x` (fast, deterministic, no LLM calls)
 - **Per wave merge:** `pytest backend/tests/ -v` (full code suite; excludes `-m semantic`)
 - **Phase gate:** full suite green + `test_citations_semantic.py -m semantic` reviewed before `/gsd-verify-work`
 
 ### Wave 0 Gaps
-- [ ] `backend/tests/test_citations_parser.py` — covers SC1 + parser edge cases (split markers, `[Source N]`/`[1,2]` drift, unresolvable strip, markdown-block behavior)
-- [ ] `backend/tests/test_citations_eval.py` — covers SC2 (verbatim-ness: assert `quote in chunk_text`), SC3 (`DoneEvent` schema), marker→source resolution + shuffle-ordering test
-- [ ] `backend/tests/test_provider_seam.py` — covers SC4: a deterministic fake `LLMProvider`; assert citation contract holds provider-independently; assert `get_provider()` factory branches + lazy construction
-- [ ] `backend/tests/test_citations_semantic.py` — RAGAS faithfulness/abstention/coverage (gated `-m semantic`); needs `backend/eval/citations_golden.jsonl` (16 Q&A pairs, domain-expert labeled — built concurrently per AI-SPEC §5)
+- [ ] `backend/tests/test_llm_provider.py` — covers SC4: a deterministic fake `LLMProvider`; assert citation contract holds provider-independently; assert `get_provider()` factory branches + lazy construction (supersedes the originally-sketched `test_provider_seam.py`)
+- [ ] `backend/tests/test_citations_eval.py` — covers SC1 (`stream_marker`), SC2 (`verbatim` — assert `quote in chunk_text`), SC3 (`done_event` — `DoneEvent` schema), marker→source resolution + shuffle-ordering test, AND parser edge cases (split markers, `[Source N]`/`[1,2]` drift, unresolvable strip, markdown-block behavior) (supersedes the originally-sketched `test_citations_parser.py` — both responsibilities merged into one file)
+- [ ] `backend/tests/test_citations_semantic.py` — RAGAS faithfulness/abstention/coverage (gated `-m semantic`); needs `backend/eval/citations_golden.jsonl` (engineer-authored seed set per Open Question 4 RESOLVED; 16 Q&A pairs is the aspirational target)
 - [ ] **Extend** `backend/tests/test_pipeline_smoke.py::test_document_ids_filter` — also assert every cited chunk's `document_id` is inside the filter (SC5 + citation provenance)
 - [ ] **Migrate** `backend/tests/test_groq_client.py` — retarget at `GroqProvider` + new error-translation point
 - [ ] Dependency: if planner chooses `rapidfuzz`, add to `requirements.txt`; if `difflib`, no install. RAGAS: `pip install ragas==0.2.*` → `backend/requirements-dev.txt` (no `requirements-dev.txt` exists today — planner creates it)
-- [ ] Register `semantic` marker (e.g. `pytest.ini` / `pyproject.toml` `markers`) — no pytest config file exists today
+- [ ] Register `semantic` marker in `backend/pytest.ini` `markers` — no marker registered today
 
 ## Security Domain
 
@@ -378,18 +379,18 @@ Test framework already in place — `pytest` with `fastapi.testclient.TestClient
 | A4 | `security_enforcement` defaults to enabled — `.planning/config.json` was not found at the path checked | Security Domain | Low — security scope for this phase is narrow regardless |
 | A5 | The non-streaming `/chat` path can adopt the enriched `Source` model without breaking `ChatResponse` if both paths populate `chunk_id`/`document_id`/`quote` | schemas.py read | Medium — if `answer_node`'s source dicts don't carry the new keys, `ChatResponse` validation fails; planner must ensure the non-streaming path also enriches, or use field defaults |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Where does the `HTTPException(503)` translation move?**
+1. **Where does the `HTTPException(503)` translation move?** **(RESOLVED — Plan 02-01 Task 2 owns the decision and picks the 503 location; recommended landing is a thin try/except at the `routes_chat.py` `/chat` handler or `answer_question_with_graph` boundary. `HTTPException` stays out of `GroqProvider`. The chosen location is recorded in 02-01's SUMMARY as a handoff to 02-03.)**
    - What we know: `_call_groq` currently raises `HTTPException(503)`; D-08 says providers raise native SDK exceptions and "callers handle as today"; the streaming path already has its own try/except, but the non-streaming `/chat` route relies on the 503 propagating to FastAPI.
    - What's unclear: whether the 503 translation lands in `routes_chat.py`, a thin shim, or `answer_question_with_graph`.
    - Recommendation: planner decides; cleanest is a small translation at the `/chat` route or `answer_question_with_graph` boundary. Keep `HTTPException` out of `GroqProvider`.
 
-2. **Discrete `[1][2]` vs. preserved `[1, 2]` canonical output** — see Assumption A2. Confirm against the Phase 3 frontend badge contract before locking the parser's output format.
+2. **Discrete `[1][2]` vs. preserved `[1, 2]` canonical output** — see Assumption A2. **(RESOLVED — discrete `[1][2]` adopted as the canonical output form per Plan 02-02's parser design; matches the Phase 3 frontend "discrete badges" contract.)** Confirm against the Phase 3 frontend badge contract before locking the parser's output format.
 
-3. **Few-shot examples in the system prompt** — AI-SPEC §4b recommends 1–2 inline static examples. The current system prompt is already long and table-heavy; planner should decide placement and keep it minimal.
+3. **Few-shot examples in the system prompt** — AI-SPEC §4b recommends 1–2 inline static examples. **(RESOLVED — Plan 02-03 Task 1 adds 1–2 minimal inline few-shot examples to the system prompt alongside the `[N]` instruction and the no-fabrication rule.)** The current system prompt is already long and table-heavy; planner should decide placement and keep it minimal.
 
-4. **`backend/eval/citations_golden.jsonl` ownership** — AI-SPEC §5 says domain experts (lawyer/analyst) label it, built concurrently with implementation. For a solo-developer reality, the planner should decide a pragmatic v1: a smaller engineer-authored seed set against the existing `backend/tests/fixtures/pdfs/` (merger agreement + annual report PDFs are already present, plus 3 new fixture PDFs added recently per git status), expandable later.
+4. **`backend/eval/citations_golden.jsonl` ownership** — AI-SPEC §5 says domain experts (lawyer/analyst) label it, built concurrently with implementation. **(RESOLVED — Plan 02-00 Task 3 seeds a pragmatic engineer-authored 3–5 record golden seed set against the existing `backend/tests/fixtures/pdfs/`, expandable later; the 16-pair domain-expert-labeled target is aspirational, not a Phase 2 gate.)** For a solo-developer reality, the planner should decide a pragmatic v1: a smaller engineer-authored seed set against the existing `backend/tests/fixtures/pdfs/` (merger agreement + annual report PDFs are already present, plus 3 new fixture PDFs added recently per git status), expandable later.
 
 ## Environment Availability
 
@@ -444,3 +445,4 @@ From `MEMORY.md` (user auto-memory): **PDF extractors `pdfplumber` and `docling`
 
 **Research date:** 2026-05-14
 **Valid until:** ~2026-06-14 (stable — internal codebase, no fast-moving external deps; re-verify if `groq` SDK is bumped)
+</content>
