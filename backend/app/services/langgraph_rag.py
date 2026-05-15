@@ -6,7 +6,7 @@ from langgraph.graph import END, StateGraph
 from app.services.embeddings import embed_texts
 from app.services.vector_store import search_chunks, parent_lookup
 from app.services.bm25_retriever import search_bm25
-from app.services.groq_client import generate_with_groq, generate_with_messages, stream_with_groq
+from app.services.llm import get_provider
 from app.services.reranker import rerank
 from app.config import RAG_TOP_K, RAG_MAX_DISTANCE
 
@@ -62,7 +62,7 @@ Rewritten search query:
 """
 
     try:
-        rewritten = generate_with_groq(prompt).strip()
+        rewritten = get_provider().generate([{"role": "user", "content": prompt}]).strip()
     except Exception:
         rewritten = ""
     if not rewritten:
@@ -183,7 +183,16 @@ def _build_answer_messages(state: RAGState) -> list[dict]:
         "- Use only the provided context.\n"
         "- Do not use outside knowledge.\n"
         "- If the context does not contain the answer, say: \"I couldn't find that in the uploaded document.\"\n"
-        "- Cite every important claim using [Source 1], [Source 2], etc.\n"
+        "- Cite every important claim using compact `[N]` markers, where `N` is the source number "
+        "(1-based) from the Context block above. Place the marker immediately after the claim it "
+        "supports.\n"
+        "- Cite ONLY sources that directly support the claim you just wrote. If no provided source "
+        "supports a claim, do not write that claim.\n"
+        "- NEVER invent source numbers. Only use numbers that actually appear in the Context block. "
+        "Do not write `[5]` if only 3 sources were provided.\n"
+        "- Examples of correct citation form:\n"
+        "    The lease term is 12 months [2].\n"
+        "    Net revenue rose 8% year over year [1], driven by services growth [3].\n"
         "\n"
         "Table rules (CRITICAL — follow exactly):\n"
         "- NEVER embed pipe-separated table data inline in a paragraph. If you write `|`, you MUST be on a new "
@@ -220,7 +229,7 @@ def _build_answer_messages(state: RAGState) -> list[dict]:
 
 
 def answer_node(state: RAGState) -> RAGState:
-    answer = generate_with_messages(_build_answer_messages(state))
+    answer = get_provider().generate(_build_answer_messages(state))
     return {**state, "answer": answer}
 
 
