@@ -1,0 +1,5 @@
+{"question": "What is the monthly rent specified in the agreement?", "document_id": "Merger Agreement Contract Form Sample.pdf", "expected_pages": [1, 2], "expected_verbatim_span": "rent", "answerable": true, "category": "fact_lookup"}
+{"question": "Who are the parties to the merger agreement?", "document_id": "Merger Agreement Contract Form Sample.pdf", "expected_pages": [1], "expected_verbatim_span": "Agreement", "answerable": true, "category": "entity_extraction"}
+{"question": "What was the company's reported revenue for fiscal year 2025?", "document_id": "ar_2025_e.pdf", "expected_pages": [1, 2, 3], "expected_verbatim_span": "revenue", "answerable": true, "category": "financial_metric"}
+{"question": "What is the dividend per share announced in the annual report?", "document_id": "ar_2025_e.pdf", "expected_pages": [2, 3, 4], "expected_verbatim_span": "dividend", "answerable": true, "category": "financial_metric"}
+{"question": "What is the CEO's home address?", "document_id": "ar_2025_e.pdf", "expected_pages": [], "expected_verbatim_span": "", "answerable": false, "category": "adversarial_out_of_scope"}

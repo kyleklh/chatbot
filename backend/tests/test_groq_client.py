@@ -1,3 +1,9 @@
+"""MIGRATION TARGET — Plan 02-01 retargets these 4 tests at GroqProvider + the
+new error-translation point; do NOT delete. The tests below remain green
+against the current `app.services.groq_client` module until Plan 02-01 lands
+the provider seam and migrates them.
+"""
+
 from unittest.mock import MagicMock, patch
 
 import pytest
