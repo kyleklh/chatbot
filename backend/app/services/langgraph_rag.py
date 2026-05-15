@@ -2,12 +2,15 @@ import json
 from typing import Any, Generator, TypedDict
 
 from langgraph.graph import END, StateGraph
+from pydantic import ValidationError
 
 from app.services.embeddings import embed_texts
 from app.services.vector_store import search_chunks, parent_lookup
 from app.services.bm25_retriever import search_bm25
 from app.services.llm import get_provider
+from app.services.citations.parser import CitationStreamParser
 from app.services.reranker import rerank
+from app.models.schemas import DoneEvent
 from app.config import RAG_TOP_K, RAG_MAX_DISTANCE
 
 
@@ -316,21 +319,47 @@ def stream_answer_with_graph(
         yield json.dumps({"sources": [], "done": True})
         return
 
+    provider = get_provider()
+    parser = CitationStreamParser(state["filtered_sources"])
+
     try:
-        for token in stream_with_groq(_build_answer_messages(state)):
-            yield json.dumps({"token": token})
+        for raw_token in provider.stream(_build_answer_messages(state)):
+            for clean in parser.feed(raw_token):
+                yield json.dumps({"token": clean})
+        for clean in parser.flush():
+            yield json.dumps({"token": clean})
     except Exception as e:
         print(f"Streaming error: {type(e).__name__}: {e}")
         yield json.dumps({"token": "Sorry, the AI service is temporarily unavailable. Please try again in a moment."})
 
-    sources = [
-        {
-            "text": s["text"],
-            "page": s["page"],
-            "filename": s["filename"],
-            "document_id": s["metadata"]["document_id"],
-            "distance": s.get("distance"),
-        }
-        for s in state["filtered_sources"]
-    ]
-    yield json.dumps({"sources": sources, "done": True})
+    enriched = parser.enriched_sources()
+    marker_map = parser.marker_to_chunk_id()
+
+    # Build DoneEvent, tolerating a parser/validation bug by dropping the
+    # offending marker (D-04, T-02-03-03). Bounded retry — at most one drop
+    # per missing-chunk_id error — so a pathological state cannot loop.
+    done: DoneEvent | None = None
+    for _attempt in range(len(marker_map) + 1):
+        try:
+            done = DoneEvent(sources=enriched, marker_map=marker_map)
+            break
+        except ValidationError as ve:
+            # Find any marker whose chunk_id is not in enriched and drop it.
+            known_chunks = {s.get("chunk_id", "") for s in enriched if s.get("chunk_id")}
+            bad = [m for m, cid in marker_map.items() if cid not in known_chunks]
+            if not bad:
+                print(f"[citation] DoneEvent ValidationError with no droppable marker: {ve}")
+                break
+            for m in bad:
+                print(
+                    f"[citation] dropping marker {m!r}={marker_map[m]!r} "
+                    f"from marker_map (not in sources)"
+                )
+                marker_map.pop(m, None)
+
+    if done is None:
+        # Last-resort fallback: emit done with empty marker_map so the client
+        # contract (a done event with sources) is preserved (no 500, no hang).
+        done = DoneEvent(sources=enriched, marker_map={})
+
+    yield json.dumps(done.model_dump())
