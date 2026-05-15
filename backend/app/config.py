@@ -15,6 +15,11 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "4096"))
 
+# Phase 02 provider seam (D-07). Switches app.services.llm.factory.get_provider().
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq")
+# AI-SPEC §4 — citation-friendly temperature; deterministic by default for eval reproducibility.
+LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.0"))
+
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
 
 CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "docurag_docs")
