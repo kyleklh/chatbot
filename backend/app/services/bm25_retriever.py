@@ -57,6 +57,11 @@ def search_bm25(
             "metadata": c["metadata"],
             "filename": c["metadata"]["file_name"],
             "page": c["metadata"]["page"],
+            # Mirror search_chunks: surface chunk_id at the top level so
+            # downstream consumers (CitationStreamParser, DoneEvent) get a
+            # populated chunk_id even when _rrf_merge picks the BM25 record
+            # over the vector record for the same key (Plan 02-03 Rule 1).
+            "chunk_id": c["metadata"].get("chunk_id") if isinstance(c.get("metadata"), dict) else None,
             "distance": None,
         }
         for c, _ in candidates[:top_k]
