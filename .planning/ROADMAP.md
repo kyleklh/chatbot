@@ -52,10 +52,10 @@ v1 is a 1–2 week milestone that turns the current working-but-loose RAG chatbo
   4. The LLM call site is behind a thin abstraction so switching from Groq to Gemini/OpenRouter/Anthropic doesn't require touching `langgraph_rag.py` graph nodes.
   5. `/chat/stream` continues to accept the LOCKED `document_ids: list[str]` filter parameter without regression.
 **Plans**: 4 plans
-- [ ] 02-00-PLAN.md — Wave 0 test scaffolding: stub test files, semantic marker, requirements-dev.txt, golden eval seed
-- [ ] 02-01-PLAN.md — LLMProvider Protocol + GroqProvider + get_provider() factory; groq_client shrink + test migration
-- [ ] 02-02-PLAN.md — CitationStreamParser + difflib verbatim-quote extractor + Source/DoneEvent schemas
-- [ ] 02-03-PLAN.md — Wire provider seam + parser into langgraph_rag; compact [N] prompt; SC1/SC5 integration tests
+- [x] 02-00-PLAN.md — Wave 0 test scaffolding: stub test files, semantic marker, requirements-dev.txt, golden eval seed
+- [x] 02-01-PLAN.md — LLMProvider Protocol + GroqProvider + get_provider() factory; groq_client shrink + test migration
+- [x] 02-02-PLAN.md — CitationStreamParser + difflib verbatim-quote extractor + Source/DoneEvent schemas
+- [x] 02-03-PLAN.md — Wire provider seam + parser into langgraph_rag; compact [N] prompt; SC1/SC5 integration tests
 **UI hint**: no
 
 ### Phase 3: Citations frontend
